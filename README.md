@@ -43,7 +43,7 @@ src/                  logic tính toán, không phụ thuộc giao diện
   db.py               lưu trữ bằng sqlite3
   personalize.py      thời gian chờ riêng, báo cáo hiệu chỉnh
   style.py            lớp trang trí: font, hình khối, mép răng cưa
-tests/                207 test, chạy bằng pytest
+tests/                202 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại

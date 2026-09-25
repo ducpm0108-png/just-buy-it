@@ -26,7 +26,10 @@ showWidgetBorder = true
 [theme.light]
 primaryColor = "#B3382C"                # mực con dấu, màu nhấn
 backgroundColor = "#FFFEFA"             # giấy hoá đơn
-secondaryBackgroundColor = "#F2F0E8"    # giấy hơi đậm hơn, cho ô nhập
+# Ô nhập trắng tinh để nổi khỏi nền giấy — người dùng thấy ngay chỗ nào gõ
+# được. Đặt ở đây chứ không đặt trong CSS: Streamlit tự chọn đúng màu theo
+# chế độ sáng/tối, còn CSS thì phải tự đoán và đoán sai là chữ biến mất.
+secondaryBackgroundColor = "#FFFFFF"
 textColor = "#221F1A"                   # mực
 borderColor = "#D4CEC0"                 # đường kẻ mờ
 linkColor = "#2B4C7E"

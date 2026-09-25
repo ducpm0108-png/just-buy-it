@@ -175,19 +175,10 @@ def price_chart(price_log: list, target: float) -> alt.LayerChart:
 db.init_db(DB_PATH)
 
 
-def theme_mode() -> str:
-    """Chế độ sáng hay tối mà người dùng đang xem.
-
-    Streamlit không phơi màu giao diện ra biến CSS, nên phải hỏi Python để
-    biết mà truyền đúng màu giấy vào lớp trang trí.
-    """
-    try:
-        return st.context.theme.type or "light"
-    except Exception:       # noqa: BLE001
-        return "light"
-
-
-st.html(style.css(theme_mode()))
+# Lớp trang trí. Không truyền chế độ sáng/tối vào: CSS tự chọn bằng
+# prefers-color-scheme, nên không có khoảng lệch giữa lúc Python đoán chế độ
+# và lúc trình duyệt vẽ — đúng chỗ bản trước làm chữ biến mất.
+st.html(style.css())
 
 if "profile" not in st.session_state:
     st.session_state.profile = db.DEFAULT_PROFILE
