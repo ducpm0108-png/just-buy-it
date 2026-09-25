@@ -1,0 +1,6 @@
+# Ẩn thanh công cụ của nhà phát triển (nút Edit, biểu tượng GitHub, menu quản
+# lý app). Người xem chỉ còn thao tác với chính trang web.
+#
+# Các giá trị: "auto" (mặc định), "developer", "viewer", "minimal".
+[client]
+toolbarMode = "minimal"
