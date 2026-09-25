@@ -15,7 +15,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src import calendar_vn, db, decay, metrics, personalize, sale, scoring
+from src import calendar_vn, db, decay, metrics, personalize, sale, scoring, style
 from src.models import CATEGORIES, Finances, Goal, Offer, Purchase, Sale, SOURCES
 from src.scoring import PRESETS, Weights
 
@@ -74,6 +74,15 @@ def receipt_section(title: str) -> str:
         f'<div style="font-family:monospace;font-size:10.5px;letter-spacing:.14em;'
         f'opacity:.6;margin:2px 0 4px">{title}</div>'
     )
+
+
+def section(title: str) -> None:
+    """Tiêu đề một nhóm trường, kiểu dòng legend của fieldset.
+
+    Dùng thay cho việc in đậm một dòng chữ thường: chữ nhỏ, giãn cách, có
+    đường kẻ dưới. Kiểu dáng nằm ở `src/style.py`.
+    """
+    st.html(f'<div class="jbi-legend">{title}</div>')
 
 
 # Hai màu cho thanh điểm: dưới ngưỡng xanh, vượt ngưỡng đỏ. Đây là màu
@@ -164,6 +173,21 @@ def price_chart(price_log: list, target: float) -> alt.LayerChart:
 # ----------------------------------------------------------------- khởi tạo
 
 db.init_db(DB_PATH)
+
+
+def theme_mode() -> str:
+    """Chế độ sáng hay tối mà người dùng đang xem.
+
+    Streamlit không phơi màu giao diện ra biến CSS, nên phải hỏi Python để
+    biết mà truyền đúng màu giấy vào lớp trang trí.
+    """
+    try:
+        return st.context.theme.type or "light"
+    except Exception:       # noqa: BLE001
+        return "light"
+
+
+st.html(style.css(theme_mode()))
 
 if "profile" not in st.session_state:
     st.session_state.profile = db.DEFAULT_PROFILE
@@ -375,7 +399,7 @@ with tab_eval:
             months = st.number_input("Dùng được bao nhiêu tháng", min_value=1,
                                      value=24, step=1)
 
-        st.markdown("**Giảm giá có thời hạn**")
+        section("Giảm giá có thời hạn")
         sale_on = st.checkbox("Món này đang trong đợt giảm giá", value=True)
 
         list_price = low_30d = None
@@ -399,7 +423,7 @@ with tab_eval:
                 )
                 low_30d = low_raw if low_raw > 0 else None
 
-        st.markdown("**Tình hình tài chính**")
+        section("Tình hình tài chính")
         c1, c2, c3 = st.columns(3)
         with c1:
             income = st.number_input("Thu nhập mỗi tháng", min_value=0,
@@ -412,7 +436,7 @@ with tab_eval:
             savings = st.number_input("Tiền đang có", min_value=0,
                                       value=12_000_000, step=500_000)
 
-        st.markdown("**Bạn muốn nó từ khi nào**")
+        section("Bạn muốn nó từ khi nào")
         c1, c2 = st.columns(2)
         with c1:
             wanted_label = st.selectbox(
@@ -431,7 +455,7 @@ with tab_eval:
         desire = st.slider("Mức độ thèm muốn", 1, 10, 8)
 
         st.divider()
-        st.markdown("**Số tiền này còn làm được gì khác**")
+        section("Số tiền này còn làm được gì khác")
         st.caption("Những việc khác bạn đang muốn dùng tiền cho.")
         goals_df = st.data_editor(
             pd.DataFrame([
@@ -448,7 +472,7 @@ with tab_eval:
                  for _, r in goals_df.iterrows()
                  if str(r["Mục tiêu"]).strip() and r["Số tiền cần"] > 0]
 
-        st.markdown("**Nơi bán**")
+        section("Nơi bán")
         st.caption("Link đi theo món đồ vào danh sách chờ.")
         offers_df = st.data_editor(
             pd.DataFrame([
@@ -464,7 +488,7 @@ with tab_eval:
         offers = [Offer(str(r["Shop"]), str(r["Link"] or ""), float(r["Giá"] or 0))
                   for _, r in offers_df.iterrows() if str(r["Shop"]).strip()]
 
-        st.markdown("**Các cách khác để có nó**")
+        section("Các cách khác để có nó")
         c1, c2 = st.columns(2)
         with c1:
             used_raw = st.number_input("Giá mua cũ", min_value=0,
@@ -500,7 +524,7 @@ with tab_eval:
     # ------------------------------------------------------ hoá đơn
 
     with right:
-        with st.container(border=True):
+        with st.container(border=True, key="receipt"):
             st.markdown(
                 f'<div style="text-align:center;font-family:monospace">'
                 f'<b style="letter-spacing:.22em">JUST BUY IT?</b><br>'

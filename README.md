@@ -42,7 +42,8 @@ src/                  logic tính toán, không phụ thuộc giao diện
   decay.py            thời gian bán rã của ham muốn
   db.py               lưu trữ bằng sqlite3
   personalize.py      thời gian chờ riêng, báo cáo hiệu chỉnh
-tests/                190 test, chạy bằng pytest
+  style.py            lớp trang trí: font, hình khối, mép răng cưa
+tests/                207 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
