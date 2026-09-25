@@ -1,0 +1,6 @@
+# Giao diện. Phần tính toán trong src/ chỉ dùng thư viện chuẩn của Python,
+# nên chạy test không cần cài gì ngoài pytest.
+streamlit>=1.30
+
+# Kiểm thử
+pytest>=7.0

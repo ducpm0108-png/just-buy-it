@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Just Buy It?</title>
+<script>
+try{var t=localStorage.getItem('justbuyit.theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --desk:#DCE4DE; --desk-2:#EEF2EE;
+  --on-desk:#1E3A33; --on-desk-soft:#4C6660;
+  --tab-bg:rgba(30,58,51,.07); --tab-hover:rgba(30,58,51,.14); --tab-text:#3B5750;
+  --logo-accent:#B3382C;
+  --paper:#FFFEFA; --ink:#221F1A; --ink-soft:#6B655A; --rule:#D4CEC0;
+  --field:#FFFFFF; --field-line:#C6BFAE;
+  --stamp-red:#B3382C; --stamp-green:#2E6B4F; --stamp-blue:#2B4C7E; --stamp-amber:#A2701B;
+  --focus:#C9962A;
+  --shadow:0 14px 34px rgba(30,58,51,.18);
+  --warn-bg:#FBEEE6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#0F1C19; --desk-2:#16302A;
+    --on-desk:#F3EFE5; --on-desk-soft:rgba(243,239,229,.6);
+    --tab-bg:rgba(243,239,229,.07); --tab-hover:rgba(243,239,229,.14); --tab-text:rgba(243,239,229,.75);
+    --logo-accent:#E8C15C;
+    --paper:#232019; --ink:#EDE7D9; --ink-soft:#9A9384; --rule:#4A443A;
+    --field:#2C2821; --field-line:#4A443A;
+    --stamp-red:#E06A5C; --stamp-green:#66B58F; --stamp-blue:#78A3DC; --stamp-amber:#D6A644;
+    --focus:#E8C15C;
+    --shadow:0 18px 40px rgba(0,0,0,.45);
+    --warn-bg:#3A2620;
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#0F1C19; --desk-2:#16302A;
+  --on-desk:#F3EFE5; --on-desk-soft:rgba(243,239,229,.6);
+  --tab-bg:rgba(243,239,229,.07); --tab-hover:rgba(243,239,229,.14); --tab-text:rgba(243,239,229,.75);
+  --logo-accent:#E8C15C;
+  --paper:#232019; --ink:#EDE7D9; --ink-soft:#9A9384; --rule:#4A443A;
+  --field:#2C2821; --field-line:#4A443A;
+  --stamp-red:#E06A5C; --stamp-green:#66B58F; --stamp-blue:#78A3DC; --stamp-amber:#D6A644;
+  --focus:#E8C15C;
+  --shadow:0 18px 40px rgba(0,0,0,.45);
+  --warn-bg:#3A2620;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;min-height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;min-height:100%;
+  background:var(--desk);
+  background-image:radial-gradient(circle at 18% -10%, var(--desk-2), var(--desk) 62%);
+  background-attachment:fixed;
+  color:var(--ink);
+  font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.55;
+}
+.wrap{max-width:1140px;margin:0 auto;padding:28px 20px 72px}
+
+/* masthead */
+.masthead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.logo{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:600;font-size:23px;letter-spacing:.14em;color:var(--on-desk);margin:0}
+.logo span{color:var(--logo-accent)}
+.tagline{color:var(--on-desk-soft);font-size:14px;margin:0}
+.theme{display:flex;border:1px solid var(--tab-hover);border-radius:4px;overflow:hidden}
+.theme button{font-family:inherit;font-size:12.5px;padding:6px 11px;border:0;background:transparent;color:var(--tab-text);cursor:pointer}
+.theme button + button{border-left:1px solid var(--tab-hover)}
+.theme button[aria-pressed="true"]{background:var(--paper);color:var(--ink);font-weight:600}
+.theme button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+
+/* tabs */
+.tabs{display:flex;gap:2px;margin:22px 0 18px;flex-wrap:wrap}
+.tab{font-family:inherit;font-size:14px;font-weight:500;background:var(--tab-bg);color:var(--tab-text);border:0;border-radius:3px 3px 0 0;padding:9px 17px;cursor:pointer}
+.tab:hover{background:var(--tab-hover)}
+.tab[aria-selected="true"]{background:var(--paper);color:var(--ink);font-weight:600}
+.tab:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.split{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:26px;align-items:start}
+@media (max-width:880px){.split{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--paper);color:var(--ink);border-radius:4px;padding:24px 22px 26px;box-shadow:var(--shadow)}
+.panel h2{font-size:17px;font-weight:600;margin:0 0 4px}
+.panel h3{font-size:15px;font-weight:600;margin:24px 0 2px}
+.lede{color:var(--ink-soft);font-size:13.5px;margin:0 0 18px;max-width:64ch}
+
+/* form rows */
+.fieldset{border:0;padding:0;margin:0 0 22px;min-width:0}
+.fieldset legend{font-size:12.5px;font-weight:600;color:var(--ink-soft);padding:0 0 9px;margin:0;border-bottom:1px solid var(--rule);width:100%}
+.row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dotted var(--rule)}
+.row > label{flex:1;font-size:14px;min-width:0}
+.hint{display:block;font-size:12px;color:var(--ink-soft);margin-top:1px}
+input[type="number"],input[type="text"],input[type="url"],select{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:14px;
+  padding:5px 8px;background:var(--field);color:var(--ink);
+  border:1px solid var(--field-line);border-radius:2px;min-width:0;
+}
+.row input[type="number"]{width:142px;text-align:right}
+.row input[type="text"]{width:180px}
+.row select{width:180px;font-family:inherit;font-size:13.5px}
+.row .combo{display:flex;gap:6px}
+.row .combo input{width:80px}
+.row .combo select{width:92px}
+input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+input[type="checkbox"]{width:17px;height:17px;accent-color:var(--stamp-red)}
+input[type="range"]{width:142px;accent-color:var(--stamp-green)}
+.val{font-family:"IBM Plex Mono",monospace;font-weight:600;min-width:28px;text-align:right;font-size:14px}
+.sale-box{padding-left:14px;border-left:2px solid var(--stamp-red);margin-top:4px}
+.sale-box[hidden]{display:none}
+
+/* tables */
+.scroll{overflow-x:auto;margin:0 -2px;padding:0 2px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;font-size:12.5px;color:var(--ink-soft);padding:0 8px 7px 0;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:7px 8px 7px 0;border-bottom:1px dotted var(--rule);vertical-align:middle}
+td:last-child,th:last-child{padding-right:0}
+td input{width:100%;font-size:13px;padding:4px 7px}
+td input[type="number"]{text-align:right;min-width:104px}
+td.w-store{min-width:92px}
+td.w-url{min-width:150px}
+td.cpu{font-family:"IBM Plex Mono",monospace;font-weight:500;white-space:nowrap;text-align:right}
+tr.best td:first-child input,tr.best td.name{font-weight:600}
+tr.best td.name::after{content:" · rẻ nhất";font-weight:400;color:var(--stamp-green);font-size:12px}
+tr.best td.w-store input{border-color:var(--stamp-green)}
+.o-actions{white-space:nowrap;text-align:right}
+.o-actions a,.link-btn{font-family:inherit;font-size:12.5px;color:var(--stamp-blue);background:none;border:0;padding:3px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.o-actions a[hidden]{display:none}
+.link-btn.del{color:var(--ink-soft);text-decoration:none;font-size:16px;line-height:1}
+.link-btn:focus-visible,.o-actions a:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* buttons */
+.btn{font-family:inherit;font-size:13.5px;font-weight:500;padding:9px 15px;border-radius:3px;cursor:pointer;border:1px solid var(--field-line);background:var(--field);color:var(--ink)}
+.btn:hover{border-color:var(--ink-soft)}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.primary:hover{opacity:.88}
+.btn.small{padding:6px 11px;font-size:12.5px}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.msg{font-size:13px;color:var(--ink-soft);margin:10px 0 0;min-height:1.2em}
+
+/* receipt */
+.receipt-shell{position:sticky;top:calc(env(safe-area-inset-top,0px) + 18px)}
+@media (max-width:880px){.receipt-shell{position:static}}
+.receipt{
+  background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;line-height:1.7;
+  padding:30px 24px 38px;position:relative;box-shadow:var(--shadow);
+}
+.receipt::before,.receipt::after{content:"";position:absolute;left:0;right:0;height:10px;background:radial-gradient(circle at 6px 0, transparent 0 6px, var(--paper) 6px) 0 0/12px 10px repeat-x}
+.receipt::before{top:-9px;transform:scaleY(-1)}
+.receipt::after{bottom:-9px}
+.r-head{text-align:center;margin-bottom:12px}
+.r-head b{letter-spacing:.24em;font-weight:600;font-size:13px;display:block}
+.r-head small{color:var(--ink-soft);letter-spacing:.08em;font-size:11px}
+.r-rule{border-top:1px dashed var(--rule);margin:11px 0}
+.r-item{font-weight:600;font-size:14.5px;word-break:break-word}
+.r-price{font-size:22px;font-weight:600;margin-top:2px}
+.r-line{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.r-line span:last-child{white-space:nowrap;font-weight:500;text-align:right}
+.r-sub{color:var(--ink-soft);font-size:11.5px;margin:-2px 0 6px}
+.r-section{color:var(--ink-soft);font-size:11px;letter-spacing:.14em;margin-bottom:4px}
+.r-hero{text-align:center;padding:6px 0 2px}
+.r-hero .n{font-size:32px;font-weight:600;letter-spacing:-.02em;display:block;line-height:1.12}
+.r-hero .l{font-size:11.5px;color:var(--ink-soft);letter-spacing:.1em}
+.r-good{color:var(--stamp-green)}
+.r-bad{color:var(--stamp-red)}
+.r-warn{background:var(--warn-bg);color:var(--stamp-red);font-size:11.5px;padding:6px 9px;margin:6px 0;line-height:1.5}
+.r-advice{border:1px dashed var(--ink-soft);padding:9px 11px;margin-top:8px;font-size:12px;line-height:1.55}
+.r-advice p{margin:0 0 6px}
+.r-advice p:last-child{margin:0}
+.r-advice .r-line{font-size:12px}
+.meter{margin:9px 0}
+.meter .r-line{font-size:12px}
+.bar{height:7px;background:var(--rule);margin-top:4px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;display:block;transition:width .2s}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}}
+.bar i.strain{background:var(--stamp-amber)}
+.bar i.impulse{background:var(--stamp-red)}
+.bar i.ok{background:var(--stamp-green)}
+.bar .thr{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.55}
+.parts{font-size:11px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+.stamp-area{min-height:100px;display:grid;place-items:center;margin-top:12px}
+.stamp{border:3px double currentColor;border-radius:5px;padding:9px 20px 8px;transform:rotate(-7deg);text-align:center;opacity:.92}
+.stamp b{display:block;font-size:19px;font-weight:600;letter-spacing:.16em;line-height:1.2}
+.stamp small{display:block;font-size:10.5px;letter-spacing:.1em;opacity:.85;margin-top:2px}
+.stamp.buy{color:var(--stamp-green)} .stamp.wait{color:var(--stamp-blue)} .stamp.plan{color:var(--stamp-amber)} .stamp.no{color:var(--stamp-red)}
+@keyframes slam{0%{transform:rotate(-7deg) scale(2.4);opacity:0}70%{transform:rotate(-7deg) scale(.94);opacity:.95}100%{transform:rotate(-7deg) scale(1);opacity:.92}}
+.stamp.slam{animation:slam .28s cubic-bezier(.2,.8,.3,1)}
+@media (prefers-reduced-motion: reduce){.stamp.slam{animation:none}}
+.verdict-note{font-size:12px;color:var(--ink-soft);text-align:center;margin:2px 0 0;line-height:1.5}
+
+/* goal comparison bars */
+.goal-bars{margin-top:14px}
+.goal-bars .gb{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;margin-bottom:11px}
+.gb-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;align-items:baseline}
+.gb-top b{font-weight:600}
+.gb-top span{color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12px;white-space:nowrap}
+.gb-track{height:14px;background:var(--rule);position:relative;overflow:hidden}
+.gb-track i{position:absolute;top:0;bottom:0;left:0;display:block;background:var(--stamp-blue);opacity:.75}
+.gb-track i.item{background:var(--stamp-red);opacity:.85}
+.gb-legend{font-size:12px;color:var(--ink-soft);display:flex;gap:16px;flex-wrap:wrap;margin:-2px 0 12px}
+.gb-legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:baseline}
+.gb-legend i.a{background:var(--stamp-red);opacity:.85}
+.gb-legend i.b{background:var(--stamp-blue);opacity:.75}
+
+/* receipt: target price + timing */
+.r-target{text-align:center;padding:4px 0 2px}
+.r-target .n{font-size:24px;font-weight:600;display:block;line-height:1.2}
+.r-target .l{font-size:11.5px;color:var(--ink-soft);display:block}
+.r-ok{color:var(--stamp-green)}
+
+/* lists */
+.empty{border:1px dashed var(--rule);border-radius:4px;padding:26px 20px;text-align:center;color:var(--ink-soft);font-size:13.5px}
+.card-list{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+.entry{border:1px solid var(--rule);border-radius:4px;padding:14px 16px}
+.entry.ready{border-color:var(--stamp-blue);border-width:2px;padding:13px 15px}
+.entry-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.entry-name{font-weight:600;font-size:14.5px}
+.entry-meta{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.entry-body{font-size:13px;color:var(--ink-soft);margin-top:4px}
+.entry-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:12.5px}
+.entry-links a{color:var(--stamp-blue);text-underline-offset:2px}
+.entry-links span{color:var(--ink-soft);font-family:"IBM Plex Mono",monospace;font-size:12px}
+.rerate{margin-top:11px;padding-top:11px;border-top:1px dotted var(--rule);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
+.rerate input[type="range"]{flex:1;min-width:130px;accent-color:var(--stamp-blue)}
+.up{color:var(--stamp-red)} .down{color:var(--stamp-green)}
+.pricebox{margin-top:11px;padding-top:11px;border-top:1px dotted var(--rule)}
+.pricebox .rerate{border-top:0;padding-top:6px;margin-top:6px}
+.pricebox .entry-body{margin-top:0}
+
+/* profile */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin-bottom:20px}
+.stat{background:var(--paper);padding:15px 16px}
+.stat .n{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;display:block;line-height:1.2}
+.stat .l{font-size:12px;color:var(--ink-soft);display:block;margin-top:2px}
+.note{font-size:13.5px;line-height:1.6;max-width:68ch;margin:0 0 12px}
+
+/* weights */
+.w-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 36px}
+@media (max-width:880px){.w-grid{grid-template-columns:minmax(0,1fr)}}
+.w-row{padding:11px 0;border-bottom:1px dotted var(--rule)}
+.w-top{display:flex;align-items:center;gap:12px}
+.w-top label{flex:1;font-size:14px;font-weight:500}
+.w-top input[type="range"]{width:130px;accent-color:var(--ink)}
+.w-how{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.w-share{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-soft);min-width:44px;text-align:right}
+.preview{background:var(--desk);color:var(--on-desk);border-radius:4px;padding:14px 16px;font-size:13.5px;margin-top:6px}
+.preview b{font-family:"IBM Plex Mono",monospace}
+
+.foot{color:var(--on-desk-soft);font-size:12.5px;margin-top:30px;max-width:66ch}
+
+/* help button + guide */
+.panel.has-help{position:relative}
+.panel.has-help > h2{padding-right:44px}
+.help-btn{
+  position:absolute;top:18px;right:18px;
+  width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--field-line);background:var(--field);color:var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;line-height:1;
+  cursor:pointer;display:grid;place-items:center;
+}
+.help-btn:hover{border-color:var(--ink);}
+.help-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+dialog.guide{
+  border:0;border-radius:6px;padding:0;
+  width:min(640px, calc(100vw - 24px));max-height:min(86vh, 900px);
+  background:var(--paper);color:var(--ink);box-shadow:var(--shadow);
+}
+dialog.guide::backdrop{background:rgba(10,18,16,.55)}
+.guide-inner{padding:24px 24px 22px;overflow-y:auto;max-height:min(86vh, 900px)}
+.guide-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.guide-head h2{font-size:17px;margin:0}
+.guide-close{border:0;background:none;color:var(--ink-soft);font-size:22px;line-height:1;cursor:pointer;padding:0 4px}
+.guide-close:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.guide h3{font-size:14.5px;margin:20px 0 6px}
+.guide p,.guide li{font-size:13.5px;line-height:1.6}
+.guide p{margin:0 0 8px}
+.guide ol,.guide ul{margin:0 0 8px;padding-left:20px}
+.guide li{margin-bottom:4px}
+.guide .k{font-weight:600}
+.presets{display:grid;gap:10px;margin-top:8px}
+.preset{border:1px solid var(--rule);border-radius:4px;padding:12px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.preset b{display:block;font-size:14px}
+.preset span{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.factor-tips{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:6px 14px;font-size:13px;margin:4px 0 8px}
+.factor-tips dt{font-weight:600}
+.factor-tips dd{margin:0;color:var(--ink-soft)}
+@media (max-width:560px){.factor-tips{grid-template-columns:minmax(0,1fr)}.factor-tips dd{margin-bottom:6px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="brand">
+      <h1 class="logo">JUST BUY <span>IT?</span></h1>
+      <p class="tagline">Món này tốn bao nhiêu cho mỗi lần bạn thật sự dùng nó.</p>
+    </div>
+    <div class="theme" role="group" aria-label="Giao diện">
+      <button data-theme-set="auto">Tự động</button>
+      <button data-theme-set="light">Sáng</button>
+      <button data-theme-set="dark">Tối</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="eval">Đánh giá</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="wait">Chờ đã <span id="waitCount"></span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="profile">Hồ sơ</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="weights">Cách tính điểm</button>
+  </nav>
+
+  <!-- ============ ĐÁNH GIÁ ============ -->
+  <section id="tab-eval">
+    <div class="split">
+      <div class="panel" id="formPanel">
+        <h2>Món đồ bạn đang cân nhắc</h2>
+        <p class="lede">Hoá đơn bên cạnh cập nhật ngay khi bạn gõ.</p>
+
+        <fieldset class="fieldset">
+          <legend>Món đồ</legend>
+          <div class="row"><label for="name">Tên món</label><input type="text" id="name" value="Tai nghe chống ồn"></div>
+          <div class="row"><label for="cat">Danh mục</label>
+            <select id="cat">
+              <option value="tech" selected>Công nghệ</option>
+              <option value="fashion">Thời trang</option>
+              <option value="edu">Giáo dục</option>
+              <option value="home">Đồ gia dụng</option>
+              <option value="sport">Thể thao</option>
+              <option value="beauty">Mỹ phẩm</option>
+              <option value="food">Ẩm thực</option>
+              <option value="other">Khác</option>
+            </select></div>
+          <div class="row"><label for="price">Giá bạn sẽ trả <span class="hint" id="priceHint"></span></label><input type="number" id="price" value="4500000" min="0" step="50000"></div>
+          <div class="row"><label for="uses">Dự kiến dùng <span class="hint">số lần mỗi tháng</span></label><input type="number" id="uses" value="20" min="0" step="1"></div>
+          <div class="row"><label for="months">Dùng được bao lâu <span class="hint">số tháng</span></label><input type="number" id="months" value="24" min="1" step="1"></div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Giảm giá có thời hạn</legend>
+          <div class="row"><label for="saleOn">Món này đang trong đợt giảm giá</label><input type="checkbox" id="saleOn" checked></div>
+          <div class="sale-box" id="saleBox">
+            <div class="row"><label for="listPrice">Giá gốc trước khi giảm <span class="hint" id="listHint"></span></label><input type="number" id="listPrice" value="5490000" min="0" step="50000"></div>
+            <div class="row"><label for="saleLeft">Đợt giảm kết thúc sau</label>
+              <span class="combo"><input type="number" id="saleLeft" value="2" min="0" step="1"><select id="saleUnit"><option value="h">giờ</option><option value="d" selected>ngày</option></select></span>
+            </div>
+            <div class="row"><label for="low30">Giá thấp nhất 30 ngày qua <span class="hint">không bắt buộc · xem lịch sử giá trên trang bán</span></label><input type="number" id="low30" placeholder="bỏ trống" min="0" step="50000"></div>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Tình hình tài chính</legend>
+          <div class="row"><label for="income">Thu nhập mỗi tháng <span class="hint" id="incomeHint"></span></label><input type="number" id="income" value="8000000" min="0" step="500000"></div>
+          <div class="row"><label for="fixed">Chi phí cố định mỗi tháng <span class="hint">thuê nhà, ăn uống, đi lại…</span></label><input type="number" id="fixed" value="5000000" min="0" step="500000"></div>
+          <div class="row"><label for="savings">Tiền đang có <span class="hint" id="savingsHint"></span></label><input type="number" id="savings" value="12000000" min="0" step="500000"></div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Bạn muốn nó từ khi nào</legend>
+          <div class="row"><label for="wanted">Muốn món này bao lâu rồi</label>
+            <select id="wanted">
+              <option value="0.2">Vài giờ</option><option value="3">Vài ngày</option><option value="10" selected>1–2 tuần</option><option value="45">Hơn một tháng</option><option value="180">Nhiều tháng</option>
+            </select></div>
+          <div class="row"><label for="source">Biết đến nó từ đâu</label>
+            <select id="source">
+              <option value="sale">Thấy đang sale</option><option value="ad" selected>Quảng cáo trên mạng</option><option value="friend">Bạn bè dùng</option><option value="need">Nhu cầu tự phát sinh</option>
+            </select></div>
+          <div class="row"><label for="owns">Đã có món làm được việc tương tự</label><input type="checkbox" id="owns"></div>
+          <div class="row"><label for="desire">Mức độ thèm muốn</label><input type="range" id="desire" min="1" max="10" value="8"><output class="val" id="desireVal">8</output></div>
+        </fieldset>
+
+        <h3>Nơi bán</h3>
+        <p class="lede">Lưu link các shop bạn đã xem. Link đi theo món đồ vào danh sách chờ, để lúc quyết định mua bạn không phải tìm lại.</p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Shop</th><th>Link</th><th>Giá</th><th></th></tr></thead>
+            <tbody id="offerBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn small" id="addOffer">Thêm nơi bán</button></div>
+
+        <h3>Số tiền này còn làm được gì khác</h3>
+        <p class="lede">Những việc khác bạn đang muốn dùng tiền cho. Webapp so sánh chúng với món đồ, để bạn thấy mình đang đánh đổi cái gì.</p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Mục tiêu</th><th>Số tiền cần</th><th style="text-align:right">Giá món đồ bằng</th><th></th></tr></thead>
+            <tbody id="goalBody"></tbody>
+          </table>
+        </div>
+        <div class="goal-bars" id="goalBars"></div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn small" id="addGoal">Thêm mục tiêu</button></div>
+
+        <h3>Các cách khác để có nó</h3>
+        <p class="lede">Bỏ trống nghĩa là không cân nhắc. Giá mua cũ cũng được dùng làm giá bán lại nếu sau này bạn tiếc.</p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Phương án</th><th>Giá</th><th style="text-align:right">Mỗi lần dùng</th></tr></thead>
+            <tbody id="altBody">
+              <tr data-alt="new"><td class="name">Mua mới</td><td><input type="number" id="altNew" disabled></td><td class="cpu" data-cpu></td></tr>
+              <tr data-alt="used"><td class="name">Mua cũ</td><td><input type="number" id="altUsed" value="2800000" min="0" step="100000"></td><td class="cpu" data-cpu></td></tr>
+              <tr data-alt="rent"><td class="name">Thuê, tính theo lần</td><td><input type="number" id="altRent" placeholder="giá mỗi lần" min="0" step="10000"></td><td class="cpu" data-cpu></td></tr>
+              <tr data-alt="borrow"><td class="name">Mượn hoặc dùng món đang có</td><td><input type="number" id="altBorrow" placeholder="chi phí nếu có" min="0" step="10000"></td><td class="cpu" data-cpu></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn primary" id="saveBtn">Đưa vào danh sách chờ</button>
+          <button class="btn" id="resetBtn">Nhập lại từ đầu</button>
+        </div>
+        <p class="msg" id="saveMsg" aria-live="polite"></p>
+      </div>
+
+      <div class="receipt-shell">
+        <div class="receipt" id="receipt">
+          <div class="r-head"><b>JUST BUY IT?</b><small>hoá đơn chi phí thật</small></div>
+          <div class="r-rule"></div>
+          <div class="r-item" id="rName"></div>
+          <div class="r-price" id="rPrice"></div>
+          <div id="rSale"></div>
+
+          <div class="r-rule"></div>
+          <div class="r-hero"><span class="n" id="rCpu"></span><span class="l">cho mỗi lần dùng</span></div>
+          <div class="r-sub" id="rCpuSub" style="text-align:center"></div>
+
+          <div class="r-rule"></div>
+          <div class="r-line"><span>Số giờ phải đi làm</span><span id="rHours"></span></div>
+          <div class="r-sub" id="rHoursSub"></div>
+          <div class="r-line"><span>Phần tiền dư mỗi tháng</span><span id="rShare"></span></div>
+          <div class="r-sub" id="rShareSub"></div>
+          <div class="r-line"><span>Tiền đang có đủ mua</span><span id="rCover"></span></div>
+          <div class="r-line"><span>Nếu để đó 5 năm</span><span id="rOpp"></span></div>
+          <div class="r-sub">lãi kép 6% một năm</div>
+
+          <div class="r-rule"></div>
+          <div class="r-section">ĐÁNH ĐỔI</div>
+          <div id="rUnits"></div>
+          <div id="rGoals"></div>
+
+          <div class="r-rule"></div>
+          <div class="r-section">GIÁ MỤC TIÊU</div>
+          <div id="rTarget"></div>
+
+          <div class="r-rule"></div>
+          <div class="r-section">THỜI ĐIỂM MUA</div>
+          <div id="rTiming"></div>
+
+          <div class="r-rule"></div>
+          <div class="meter">
+            <div class="r-line"><span>Áp lực tài chính</span><span id="rStrainN"></span></div>
+            <div class="bar"><i class="strain" id="rStrainBar"></i><span class="thr" id="thr1"></span></div>
+            <div class="parts" id="rStrainParts"></div>
+          </div>
+          <div class="meter">
+            <div class="r-line"><span>Mức độ bốc đồng</span><span id="rImpulseN"></span></div>
+            <div class="bar"><i class="impulse" id="rImpulseBar"></i><span class="thr" id="thr2"></span></div>
+            <div class="parts" id="rImpulseParts"></div>
+          </div>
+
+          <div class="r-rule"></div>
+          <div class="stamp-area"><div class="stamp" id="stamp"></div></div>
+          <p class="verdict-note" id="verdictNote"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHỜ ĐÃ ============ -->
+  <section id="tab-wait" hidden>
+    <div class="panel">
+      <h2>Danh sách chờ</h2>
+      <p class="lede">Đến hạn, chấm lại mức thèm muốn mà không nhìn điểm cũ. Món đang sale sẽ đến hạn sớm hơn 7 ngày, trước lúc đợt giảm kết thúc vài giờ.</p>
+      <div id="waitList"></div>
+    </div>
+  </section>
+
+  <!-- ============ HỒ SƠ ============ -->
+  <section id="tab-profile" hidden>
+    <div class="panel">
+      <h2>Hồ sơ mua sắm của bạn</h2>
+      <p class="lede">Tính từ chính những món bạn đã ghi lại.</p>
+      <div id="profileBody"></div>
+      <div class="btn-row">
+        <button class="btn" id="seedBtn">Nạp dữ liệu mẫu</button>
+        <button class="btn" id="clearBtn">Xoá hết dữ liệu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CÁCH TÍNH ============ -->
+  <section id="tab-weights" hidden>
+    <div class="panel has-help">
+      <button class="help-btn" id="helpBtn" aria-haspopup="dialog" aria-controls="guide" title="Hướng dẫn đặt thanh trượt">?</button>
+      <h2>Cách tính điểm</h2>
+      <p class="lede">Mỗi yếu tố được quy về thang 0–1 theo công thức ghi bên dưới, rồi nhân với trọng số. Điểm cuối cùng là trung bình có trọng số, nhân 100. Trọng số không cần cộng lại bằng 100 — chỉ tỷ lệ giữa chúng là quan trọng.</p>
+
+      <div class="w-grid">
+        <div><h3>Áp lực tài chính</h3><div id="wStrain"></div></div>
+        <div><h3>Mức độ bốc đồng</h3><div id="wImpulse"></div></div>
+      </div>
+
+      <h3>Ngưỡng và mốc so sánh</h3>
+      <div class="w-grid">
+        <div>
+          <div class="w-row"><div class="w-top"><label for="wThr">Ngưỡng "cao"</label><input type="range" id="wThr" min="20" max="70" step="1"><output class="val" id="wThrVal"></output></div>
+            <div class="w-how">Điểm từ ngưỡng này trở lên được tính là cao khi xếp vào bốn ô kết luận.</div></div>
+          <div class="w-row"><div class="w-top"><label for="wRef">Mốc giá mỗi lần dùng</label><input type="number" id="wRef" min="1000" step="1000" style="width:120px;text-align:right"></div>
+            <div class="w-how">Giá mỗi lần dùng bằng mốc này thì yếu tố "giá mỗi lần dùng" được nửa điểm. Mặc định là giá một ly cà phê.</div></div>
+        </div>
+        <div>
+          <div class="w-row"><div class="w-top"><label for="wHl">Thời gian bán rã mặc định</label><input type="number" id="wHl" min="1" max="120" step="1" style="width:80px;text-align:right"><span class="w-share">ngày</span></div>
+            <div class="w-how" id="wHlHow"></div></div>
+        </div>
+      </div>
+
+      <div class="preview" id="wPreview"></div>
+      <div class="btn-row"><button class="btn" id="wReset">Khôi phục mặc định</button></div>
+    </div>
+  </section>
+
+  <dialog class="guide" id="guide" aria-labelledby="guideTitle">
+    <div class="guide-inner">
+      <div class="guide-head">
+        <h2 id="guideTitle">Nên đặt các thanh trượt thế nào?</h2>
+        <button class="guide-close" id="guideClose" aria-label="Đóng hướng dẫn">×</button>
+      </div>
+      <p>Không có bộ trọng số đúng cho tất cả mọi người. Mục tiêu là để kết luận khớp với những lần mua trước đây của chính bạn. Làm theo ba bước dưới đây, mất khoảng mười phút.</p>
+
+      <h3>Bước 1 — Chọn điểm xuất phát</h3>
+      <p>Chọn tình huống gần giống bạn nhất. Bạn vẫn chỉnh tiếp được sau đó.</p>
+      <div class="presets">
+        <div class="preset"><div><b>Sinh viên, thu nhập chưa đều</b><span>Ưu tiên tiền đang có và tiền dư hằng tháng. Ngưỡng 35, hơi khắt khe.</span></div><button class="btn small" data-preset="student">Áp dụng</button></div>
+        <div class="preset"><div><b>Đang để dành cho một mục tiêu lớn</b><span>Mọi khoản làm chậm quỹ để dành đều bị tính nặng. Ngưỡng 30, khắt khe nhất.</span></div><button class="btn small" data-preset="saver">Áp dụng</button></div>
+        <div class="preset"><div><b>Thu nhập ổn định, chỉ muốn chặn mua bốc đồng</b><span>Ít quan tâm túi tiền, tập trung vào giá mỗi lần dùng và thói quen mua vội. Ngưỡng 45.</span></div><button class="btn small" data-preset="stable">Áp dụng</button></div>
+      </div>
+
+      <h3>Bước 2 — Thử lại với những món bạn đã mua</h3>
+      <ol>
+        <li>Nghĩ ra ba món đã mua trước đây: một món rất đáng tiền, một món bạn tiếc, một món ở giữa.</li>
+        <li>Nhập lại từng món ở tab Đánh giá, với hoàn cảnh lúc bạn mua.</li>
+        <li>Xem con dấu. Món đáng tiền nên ra <span class="k">MUA ĐI</span> hoặc <span class="k">LÊN KẾ HOẠCH</span>; món đáng tiếc nên ra <span class="k">CHỜ ĐÃ</span> hoặc <span class="k">ĐỪNG MUA</span>.</li>
+        <li>Nếu sai, nhìn dòng chữ nhỏ dưới mỗi thanh trên hoá đơn — nó cho biết yếu tố nào đang kéo điểm lên. Tăng yếu tố lẽ ra phải bắt được món đáng tiếc, hoặc giảm yếu tố đang phạt oan món đáng tiền.</li>
+      </ol>
+
+      <h3>Bước 3 — Chỉnh ngưỡng sau cùng</h3>
+      <p>Chỉ đụng tới ngưỡng khi trọng số đã ổn. Ngưỡng thấp làm công cụ khắt khe hơn, ngưỡng cao làm nó dễ dãi hơn. Nếu gần như món nào cũng bị đóng dấu <span class="k">ĐỪNG MUA</span>, nâng ngưỡng lên 5 điểm một lần. Nếu món bạn tiếc vẫn lọt qua, hạ xuống.</p>
+
+      <h3>Khi nào nên tăng từng yếu tố</h3>
+      <dl class="factor-tips">
+        <dt>Phần tiền dư</dt><dd>Cuối tháng bạn hay bị hụt tiền.</dd>
+        <dt>Giá mỗi lần dùng</dt><dd>Bạn hay mua đồ rồi để xó.</dd>
+        <dt>Tiền đang có</dt><dd>Bạn chưa có quỹ dự phòng cho việc bất ngờ.</dd>
+        <dt>Số giờ đi làm</dt><dd>Thu nhập tính theo giờ, như đi dạy thêm, nên mỗi giờ làm đều thấy rõ.</dd>
+        <dt>Mới muốn gần đây</dt><dd>Bạn hay mua theo trend rồi chán nhanh.</dd>
+        <dt>Nguồn biết đến</dt><dd>Quảng cáo và livestream dễ làm bạn xuống tiền.</dd>
+        <dt>Đã có món thay thế</dt><dd>Nhà bạn có nhiều món làm cùng một việc.</dd>
+        <dt>Thèm muốn quá mức</dt><dd>Bạn hay mua lúc đang rất phấn khích.</dd>
+        <dt>Sắp hết sale</dt><dd>Đồng hồ đếm ngược dễ khiến bạn bấm mua.</dd>
+        <dt>Giờ khuya</dt><dd>Bạn hay lướt sàn thương mại điện tử sau 10 giờ tối.</dd>
+      </dl>
+
+      <h3>Vài nguyên tắc</h3>
+      <ul>
+        <li>Chỉ tỷ lệ giữa các thanh là quan trọng. Kéo tất cả lên gấp đôi thì kết quả không đổi — xem cột phần trăm bên phải.</li>
+        <li>Kéo về 0 để tắt hẳn một yếu tố không đúng với bạn.</li>
+        <li>Đừng để một yếu tố chiếm quá 50% nhóm của nó, nếu không cả nhóm chỉ còn đo đúng một thứ.</li>
+        <li>Mỗi lần chỉ đổi một thanh, để biết thay đổi nào làm kết luận thay đổi.</li>
+        <li>Sau khoảng một tháng dùng thật, xem lại tab Hồ sơ. Nếu nhiều món bạn đã mua giờ chỉ còn 4/10, công cụ đang quá dễ dãi.</li>
+      </ul>
+      <div class="btn-row"><button class="btn primary" id="guideDone">Đã hiểu</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="guide" id="intro" aria-labelledby="introTitle">
+    <div class="guide-inner">
+      <div class="guide-head">
+        <h2 id="introTitle">Chào bạn, đây là Just Buy It?</h2>
+        <button class="guide-close" data-close-intro aria-label="Đóng giới thiệu">×</button>
+      </div>
+      <p>Một công cụ nhỏ giúp bạn trả lời câu hỏi <b>“có nên mua món này không?”</b> bằng con số thay vì cảm xúc. Bạn nhập giá, tình hình tiền bạc và lý do mình muốn nó; công cụ in ra một hoá đơn cho biết món đồ thật sự tốn bao nhiêu, rồi đóng dấu một trong bốn kết luận: <b>Mua đi</b>, <b>Chờ đã</b>, <b>Lên kế hoạch</b> hoặc <b>Đừng mua</b>.</p>
+
+      <h3>Dùng thế nào</h3>
+      <ol>
+        <li><b>Đánh giá</b> — điền thông tin món đồ. Các ô đã có sẵn một ví dụ, cứ sửa đè lên. Hoá đơn bên phải cập nhật ngay khi bạn gõ, kèm giá mục tiêu và đợt giảm giá gần nhất của danh mục đó.</li>
+        <li><b>Chờ đã</b> — nếu còn phân vân, bấm “Đưa vào danh sách chờ”. Sau 7 ngày (hoặc sớm hơn nếu món đang sale), quay lại chấm lại xem mình còn muốn nó không. Mỗi lần thấy giá mới, ghi lại để theo dõi giá có về mức mục tiêu chưa.</li>
+        <li><b>Hồ sơ</b> — sau vài món, công cụ cho biết ham muốn của bạn nguội nhanh cỡ nào và bạn đã không tiêu bao nhiêu tiền nhờ chờ.</li>
+        <li><b>Cách tính điểm</b> — tuỳ chỉnh độ khắt khe. Bấm nút <b>?</b> ở góc để xem hướng dẫn.</li>
+      </ol>
+
+      <h3>Vài lưu ý</h3>
+      <ul>
+        <li>Con số chỉ tốt bằng dữ liệu bạn nhập. Hãy ước tính số lần dùng một cách thật lòng — đó là ô ảnh hưởng nhiều nhất.</li>
+        <li>Webapp không tự đọc giá từ các sàn. Giá là do bạn ghi vào, và lịch giảm giá theo danh mục chỉ là các mốc sale định kỳ, không phải dự báo.</li>
+        <li>Dữ liệu chỉ lưu trên trình duyệt này. Không có tài khoản, không gửi đi đâu; xoá dữ liệu trình duyệt là mất.</li>
+        <li>Muốn xem trước tab Hồ sơ trông ra sao, bấm “Nạp dữ liệu mẫu” trong tab đó.</li>
+        <li>Đây là công cụ để nhìn lại thói quen chi tiêu, không phải lời khuyên tài chính.</li>
+      </ul>
+      <div class="btn-row"><button class="btn primary" data-close-intro>Bắt đầu</button></div>
+    </div>
+  </dialog>
+
+  <p class="foot">Bản chạy thử. <button class="link-btn" id="introLink" style="color:inherit;padding:0">Xem lại giới thiệu</button>. Mọi con số đều tính từ dữ liệu bạn tự nhập và chỉ lưu trên trình duyệt này. Đây là công cụ để nhìn lại thói quen chi tiêu, không phải lời khuyên tài chính.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= helpers ================= */
+var fmt = new Intl.NumberFormat('vi-VN');
+function vnd(n){ return fmt.format(Math.round(n)) + ' \u20AB'; }
+function el(id){ return document.getElementById(id); }
+function num(id){ var v = parseFloat(el(id).value); return isFinite(v) ? v : 0; }
+function optNum(id){ var s = el(id).value; if(s === '') return null; var v = parseFloat(s); return isFinite(v) ? v : null; }
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function safeUrl(u){ u = (u || '').trim(); return /^https?:\/\/\S+$/i.test(u) ? u : ''; }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function duration(h){
+  if(!isFinite(h)) return '—';
+  if(h < 1) return 'dưới 1 giờ';
+  if(h < 24) return Math.round(h) + ' giờ';
+  var d = Math.floor(h / 24), r = Math.round(h - d * 24);
+  return d + ' ngày' + (r ? ' ' + r + ' giờ' : '');
+}
+function when(iso){ return new Date(iso).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}); }
+var HOUR = 3600000, DAY = 86400000;
+
+/* ================= storage ================= */
+function loadJSON(k, f){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : f; } catch(e){ return f; } }
+function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+var K_ITEMS = 'justbuyit.items.v2', K_W = 'justbuyit.weights.v1', K_THEME = 'justbuyit.theme';
+
+/* ================= the model ================= */
+var DEFAULTS = {
+  strain:  { share:35, cpu:25, cover:25, hours:15 },
+  impulse: { recency:30, source:20, owns:15, desire:15, urgency:15, night:5 },
+  threshold: 40, refCpu: 35000, defaultHalfLife: 10
+};
+
+var FACTORS = {
+  strain: [
+    { k:'share',  label:'Phần tiền dư mỗi tháng', short:'tiền dư',       how:'Giá ÷ tiền dư hàng tháng, tối đa ở 100%. Món bằng nửa tháng tiền dư thì được 0,5.' },
+    { k:'cpu',    label:'Giá mỗi lần dùng',        short:'mỗi lần dùng',  how:'c ÷ (c + mốc). Bằng mốc thì 0,5; đắt gấp ba mốc thì 0,75.' },
+    { k:'cover',  label:'Tiền đang có',            short:'tiền đang có',  how:'Có ít hơn giá món: 1. Có gấp đôi: 0,5. Gấp bốn: 0,25.' },
+    { k:'hours',  label:'Số giờ đi làm',           short:'giờ làm',       how:'h ÷ (h + 40). Đúng một tuần làm việc thì 0,5.' }
+  ],
+  impulse: [
+    { k:'recency', label:'Mới muốn gần đây',        short:'mới muốn',      how:'0,5 mũ (số ngày ÷ 7). Muốn từ hôm nay gần 1; sau một tuần còn 0,5.' },
+    { k:'source',  label:'Nguồn biết đến',          short:'nguồn',         how:'Sale 1 · quảng cáo 0,8 · bạn bè 0,4 · tự có nhu cầu 0.' },
+    { k:'owns',    label:'Đã có món thay thế',      short:'đã có món khác',how:'Có thì 1, không thì 0.' },
+    { k:'desire',  label:'Thèm muốn quá mức',       short:'thèm muốn',     how:'(điểm − 5) ÷ 5. Từ 5/10 trở xuống là 0; 10/10 là 1.' },
+    { k:'urgency', label:'Áp lực hết hạn giảm giá', short:'sắp hết sale',  how:'Sale hết trong 7 ngày: 1 − giờ còn lại ÷ 168. Càng sát hạn càng gần 1.' },
+    { k:'night',   label:'Đang cân nhắc lúc khuya', short:'giờ khuya',     how:'Từ 22 giờ đến 5 giờ sáng thì 1.' }
+  ]
+};
+
+var SOURCE_VAL = { sale:1, ad:.8, friend:.4, need:0 };
+
+var W = (function(){
+  var s = loadJSON(K_W, null), w = clone(DEFAULTS);
+  if(s){
+    ['strain','impulse'].forEach(function(g){ if(s[g]) Object.keys(w[g]).forEach(function(k){ if(isFinite(s[g][k])) w[g][k] = s[g][k]; }); });
+    ['threshold','refCpu','defaultHalfLife'].forEach(function(k){ if(isFinite(s[k])) w[k] = s[k]; });
+  }
+  return w;
+})();
+
+/* Lịch giảm giá theo danh mục. Dữ liệu tham khảo, gom từ các đợt sale định kỳ
+   của sàn thương mại điện tử Việt Nam — không phải dự báo giá. */
+var D66 = [6, 6, 'Ngày đôi 6/6'], D99 = [9, 9, 'Ngày đôi 9/9'],
+    D1111 = [11, 11, 'Ngày đôi 11/11'], D1212 = [12, 12, 'Ngày đôi 12/12'];
+var CATS = {
+  tech:    { label:'Công nghệ',   days:[D99, D1111, D1212], bf:true,
+             note:'Đời cũ giảm mạnh nhất ngay sau khi hãng ra mẫu mới, thường vào tháng 9–10.' },
+  fashion: { label:'Thời trang',  days:[[3,1,'Xả hàng cuối mùa đông'], [9,1,'Xả hàng cuối mùa hè'], D1111, D1212], bf:true,
+             note:'Rẻ nhất vào cuối mùa, khoảng tháng 3 và tháng 9, khi cửa hàng xả đồ tồn.' },
+  edu:     { label:'Giáo dục',    days:[[8,15,'Ưu đãi đầu năm học'], [1,1,'Ưu đãi đầu năm mới'], D1111], bf:false,
+             note:'Khoá học hay giảm vào đầu năm học (tháng 8–9) và đầu năm mới.' },
+  home:    { label:'Đồ gia dụng', days:[D66, D1111, D1212], bf:true,
+             note:'Đồ gia dụng lớn giảm sâu vào các ngày đôi và dịp cuối năm.' },
+  sport:   { label:'Thể thao',    days:[[8,15,'Xả hàng cuối hè'], D1111], bf:true,
+             note:'Đồ tập hay tăng giá vào tháng 1 vì ai cũng quyết tâm đầu năm. Cuối hè rẻ hơn.' },
+  beauty:  { label:'Mỹ phẩm',     days:[[3,8,'Ưu đãi 8/3'], D1111, D1212], bf:false,
+             note:'Hay có mã giảm sâu vào 8/3 và các ngày đôi; để ý hạn sử dụng khi giá quá rẻ.' },
+  food:    { label:'Ẩm thực',     days:[[12,20,'Mùa lễ cuối năm'], D1111], bf:false,
+             note:'Đồ ăn ít giảm giá theo đợt; mua theo nhu cầu thay vì chờ sale.' },
+  other:   { label:'Khác',        days:[D66, D1111, D1212], bf:false,
+             note:'Các ngày đôi là mốc giảm giá đáng chờ nhất trên sàn.' }
+};
+
+/* Black Friday: thứ Sáu ngay sau thứ Năm thứ tư của tháng 11 */
+function blackFriday(year){
+  var d = new Date(year, 10, 1), count = 0;
+  while(d.getMonth() === 10){
+    if(d.getDay() === 4){ count++; if(count === 4) break; }
+    d.setDate(d.getDate() + 1);
+  }
+  return new Date(year, 10, d.getDate() + 1);
+}
+
+function nextSaleWindow(catKey){
+  var cat = CATS[catKey] || CATS.other, now = new Date(), best = null;
+  var cands = [];
+  [0, 1].forEach(function(dy){
+    var y = now.getFullYear() + dy;
+    cat.days.forEach(function(md){
+      cands.push({ name: md[2], when: new Date(y, md[0] - 1, md[1]) });
+    });
+    if(cat.bf) cands.push({ name:'Black Friday', when: blackFriday(y) });
+  });
+  cands.forEach(function(c){
+    var days = Math.ceil((c.when - now) / DAY);
+    if(days >= 0 && (!best || days < best.days)) best = { name:c.name, when:c.when, days:days };
+  });
+  return best;
+}
+
+var items = loadJSON(K_ITEMS, []);
+var offers = [
+  { store:'Shopee', url:'', price:4500000 },
+  { store:'Tiki',   url:'', price:4690000 }
+];
+var goals = [
+  { name:'Quỹ dự phòng 3 tháng', amount:15000000 },
+  { name:'Một khoá học',          amount:3000000 },
+  { name:'Chuyến đi Đà Lạt',      amount:5000000 }
+];
+
+function readInputs(){
+  var saleOn = el('saleOn').checked;
+  var left = num('saleLeft');
+  return {
+    name: el('name').value.trim() || 'Món chưa đặt tên',
+    cat: el('cat').value,
+    price: num('price'), uses: num('uses'), months: num('months'),
+    income: num('income'), fixed: num('fixed'), savings: num('savings'),
+    wanted: parseFloat(el('wanted').value), source: el('source').value,
+    owns: el('owns').checked, desire: num('desire'),
+    usedPrice: optNum('altUsed'),
+    sale: {
+      on: saleOn,
+      list: optNum('listPrice'),
+      hoursLeft: saleOn ? (el('saleUnit').value === 'd' ? left * 24 : left) : Infinity,
+      low30: optNum('low30')
+    }
+  };
+}
+
+function metrics(d){
+  var totalUses = d.uses * d.months;
+  var disc = Math.max(d.income - d.fixed, 0);
+  var hourly = d.income / 176;
+  var m = {
+    totalUses: totalUses,
+    costPerUse: totalUses > 0 ? d.price / totalUses : Infinity,
+    workHours: hourly > 0 ? d.price / hourly : Infinity,
+    discretionary: disc,
+    shareDisc: disc > 0 ? d.price / disc : Infinity,
+    coverage: d.price > 0 ? d.savings / d.price : Infinity,
+    monthsToRebuild: disc > 0 ? d.price / disc : Infinity,
+    opp5y: d.price * Math.pow(1.06, 5),
+    discount: 0, discountPct: 0, fake: false, vsLow30: null
+  };
+  if(d.sale.on && d.sale.list && d.sale.list > d.price){
+    m.discount = d.sale.list - d.price;
+    m.discountPct = m.discount / d.sale.list;
+  }
+  if(d.sale.on && d.sale.low30 != null && d.sale.low30 > 0){
+    m.vsLow30 = (d.sale.low30 - d.price) / d.sale.low30;
+    m.fake = d.price >= d.sale.low30;
+  }
+  return m;
+}
+
+function strainFactors(d, m){
+  var c = m.costPerUse, h = m.workHours;
+  return {
+    share: isFinite(m.shareDisc) ? clamp(m.shareDisc, 0, 1) : 1,
+    cpu:   isFinite(c) ? c / (c + W.refCpu) : 1,
+    cover: m.coverage <= 1 ? 1 : (isFinite(m.coverage) ? 1 / m.coverage : 0),
+    hours: isFinite(h) ? h / (h + 40) : 1
+  };
+}
+
+function impulseFactors(d){
+  var hr = new Date().getHours();
+  var hl = d.sale.hoursLeft;
+  return {
+    recency: Math.pow(.5, d.wanted / 7),
+    source:  SOURCE_VAL[d.source] || 0,
+    owns:    d.owns ? 1 : 0,
+    desire:  clamp((d.desire - 5) / 5, 0, 1),
+    urgency: d.sale.on && isFinite(hl) && hl < 168 ? clamp(1 - hl / 168, 0, 1) : 0,
+    night:   (hr >= 22 || hr < 5) ? 1 : 0
+  };
+}
+
+function scoreOf(group, f){
+  var w = W[group], tot = 0, sum = 0, parts = [];
+  FACTORS[group].forEach(function(x){ tot += Math.max(0, +w[x.k] || 0); });
+  FACTORS[group].forEach(function(x){
+    var wi = Math.max(0, +w[x.k] || 0);
+    var p = tot > 0 ? wi * f[x.k] / tot * 100 : 0;
+    sum += p;
+    parts.push({ k:x.k, short:x.short, pts:p });
+  });
+  parts.sort(function(a,b){ return b.pts - a.pts; });
+  return { score: Math.round(clamp(sum, 0, 100)), parts: parts };
+}
+
+var VERDICTS = {
+  buy:  { cls:'buy',  title:'MUA ĐI',       sub:'đã cân nhắc kỹ', note:'Vừa túi tiền, vừa không phải quyết định vội. Không có lý do gì để chần chừ.' },
+  wait: { cls:'wait', title:'CHỜ ĐÃ',       sub:'7 ngày',          note:'Tiền thì ổn, nhưng bạn đang muốn nó theo kiểu bốc đồng. Ghi vào danh sách chờ rồi chấm lại sau.' },
+  plan: { cls:'plan', title:'LÊN KẾ HOẠCH', sub:'để dành trước',   note:'Món này đáng nhưng đang quá nặng so với tiền dư của bạn. Để dành rồi mua, đừng bóp phần còn lại của tháng.' },
+  no:   { cls:'no',   title:'ĐỪNG MUA',     sub:'chưa phải lúc',   note:'Vừa nặng tiền vừa quyết định vội. Đây đúng là kiểu mua mà tuần sau sẽ tiếc.' }
+};
+function verdictFor(s, i){
+  var t = W.threshold, hs = s >= t, hi = i >= t;
+  return hs && hi ? VERDICTS.no : hs ? VERDICTS.plan : hi ? VERDICTS.wait : VERDICTS.buy;
+}
+
+/* Giá mục tiêu: mức giá cao nhất mà điểm áp lực tài chính vẫn dưới ngưỡng.
+   Điểm áp lực tăng đơn điệu theo giá, nên tìm bằng chia đôi khoảng (binary search). */
+function targetPrice(d){
+  var here = scoreOf('strain', strainFactors(d, metrics(d))).score;
+  if(here < W.threshold) return { needed:false, now:here };
+
+  function scoreAt(p){
+    var t = clone(d); t.price = p;
+    return scoreOf('strain', strainFactors(t, metrics(t))).score;
+  }
+  if(scoreAt(0) >= W.threshold) return { needed:true, now:here, impossible:true };
+
+  var lo = 0, hi = d.price;
+  for(var i = 0; i < 40; i++){
+    var mid = (lo + hi) / 2;
+    if(scoreAt(mid) < W.threshold) lo = mid; else hi = mid;
+  }
+  return { needed:true, now:here, price:lo, cut:d.price > 0 ? (d.price - lo) / d.price : 0 };
+}
+
+function halfLifeInfo(){
+  var hl = [];
+  items.forEach(function(it){
+    if(!it.ratings || it.ratings.length < 2) return;
+    var f = it.ratings[0], l = it.ratings[it.ratings.length - 1];
+    var ratio = l.v / f.v;
+    var days = (new Date(l.t) - new Date(f.t)) / DAY;
+    if(ratio > 0 && ratio < 1 && days > 0) hl.push(days * Math.LN2 / -Math.log(ratio));
+  });
+  if(hl.length) return { days: hl.reduce(function(a,b){ return a + b; }, 0) / hl.length, fromData: true, n: hl.length };
+  return { days: W.defaultHalfLife, fromData: false, n: 0 };
+}
+
+function saleAdvice(d, m){
+  if(!d.sale.on || !isFinite(d.sale.hoursLeft) || !m.discount) return null;
+  var H = halfLifeInfo();
+  var p7 = clamp(d.desire * Math.pow(.5, 7 / H.days) / 10, 0, 1);
+  var recover = d.usedPrice != null ? Math.min(d.usedPrice, d.price) : 0;
+  return {
+    hrs: d.sale.hoursLeft, within7: d.sale.hoursLeft < 168, p7: p7, H: H, recover: recover,
+    waitLoss: m.discount * p7,
+    buyLoss: (d.price - recover) * (1 - p7)
+  };
+}
+
+/* ================= render: receipt ================= */
+var lastVerdict = null;
+var UNITS = [{n:'bát phở',p:50000},{n:'ly cà phê',p:35000},{n:'tháng Spotify',p:59000},{n:'lần đổ xăng',p:80000}];
+
+function partsText(parts){
+  var top = parts.filter(function(p){ return p.pts >= 1; }).slice(0, 3);
+  return top.length ? top.map(function(p){ return p.short + ' +' + Math.round(p.pts); }).join(' · ') : 'không yếu tố nào đáng kể';
+}
+
+function render(){
+  var d = readInputs(), m = metrics(d);
+
+  el('saleBox').hidden = !d.sale.on;
+  el('priceHint').textContent = vnd(d.price);
+  el('listHint').textContent = d.sale.list ? vnd(d.sale.list) : '';
+  el('incomeHint').textContent = vnd(d.income);
+  el('savingsHint').textContent = vnd(d.savings);
+  el('desireVal').textContent = d.desire;
+
+  el('rName').textContent = d.name;
+  el('rPrice').textContent = vnd(d.price);
+
+  /* sale block */
+  var s = '';
+  if(d.sale.on){
+    if(m.discount){
+      s += '<div class="r-line"><span>Giá gốc</span><span>' + vnd(d.sale.list) + '</span></div>';
+      s += '<div class="r-line r-good"><span>Giảm</span><span>−' + vnd(m.discount) + ' (' + Math.round(m.discountPct*100) + '%)</span></div>';
+    } else if(d.sale.list){
+      s += '<div class="r-warn">Giá "sale" không thấp hơn giá gốc bạn nhập.</div>';
+    }
+    if(m.vsLow30 != null){
+      s += m.fake
+        ? '<div class="r-warn">Giá này không rẻ hơn mức thấp nhất trong 30 ngày qua. Đợt giảm có thể chỉ là tăng giá gốc lên rồi giảm lại.</div>'
+        : '<div class="r-line"><span>So với đáy 30 ngày</span><span class="r-good">rẻ hơn ' + Math.round(m.vsLow30*100) + '%</span></div>';
+    }
+    if(isFinite(d.sale.hoursLeft)){
+      s += '<div class="r-line"><span>Sale hết sau</span><span' + (d.sale.hoursLeft < 24 ? ' class="r-bad"' : '') + '>' + duration(d.sale.hoursLeft) + '</span></div>';
+    }
+    var a = saleAdvice(d, m);
+    if(a && a.within7 && !m.fake){
+      s += '<div class="r-advice">';
+      if(a.hrs >= 24){
+        s += '<p>Không cần mua ngay. Chờ đến <b>ngày cuối đợt sale</b> vẫn giữ nguyên mức giảm, và bạn có thêm ' + duration(a.hrs - 6) + ' để nguội.</p>';
+      } else {
+        s += '<p>Sale hết trong chưa đầy một ngày, không còn thời gian để chờ.</p>';
+      }
+      s += '<p>Nếu phải chọn giữa chờ đủ 7 ngày và mua trong đợt sale:</p>';
+      s += '<div class="r-line"><span>Chờ, mất đợt giảm</span><span>thiệt ~' + vnd(a.waitLoss) + '</span></div>';
+      s += '<div class="r-line"><span>Mua, rồi tiếc</span><span>thiệt ~' + vnd(a.buyLoss) + '</span></div>';
+      s += '<p class="r-sub" style="margin:4px 0 6px">khả năng tuần sau vẫn muốn ≈ ' + Math.round(a.p7*100) + '% (bán rã ' + Math.round(a.H.days) + ' ngày' + (a.H.fromData ? ', từ dữ liệu của bạn' : ', mặc định') + ') · bán lại được ' + vnd(a.recover) + '</p>';
+      s += '<p><b>' + (a.waitLoss <= a.buyLoss ? 'Chờ vẫn lợi hơn, kể cả khi lỡ mất đợt sale.' : 'Mức giảm đủ lớn để mua trong đợt này — nhưng vào ngày cuối.') + '</b></p>';
+      s += '</div>';
+    }
+  }
+  el('rSale').innerHTML = s;
+
+  if(isFinite(m.costPerUse)){
+    el('rCpu').textContent = vnd(m.costPerUse);
+    el('rCpuSub').textContent = fmt.format(d.uses) + ' lần/tháng \u00D7 ' + fmt.format(d.months) + ' tháng = ' + fmt.format(m.totalUses) + ' lần';
+  } else { el('rCpu').textContent = '\u221E'; el('rCpuSub').textContent = 'bạn chưa cho biết sẽ dùng bao nhiêu lần'; }
+
+  if(isFinite(m.workHours)){ el('rHours').textContent = fmt.format(Math.round(m.workHours)) + ' giờ'; el('rHoursSub').textContent = '≈ ' + (m.workHours/8).toFixed(1).replace('.', ',') + ' ngày công'; }
+  else { el('rHours').textContent = '—'; el('rHoursSub').textContent = 'chưa nhập thu nhập'; }
+
+  if(isFinite(m.shareDisc)){
+    el('rShare').textContent = Math.round(m.shareDisc*100) + '%';
+    el('rShareSub').textContent = 'tiền dư ' + vnd(m.discretionary) + '/tháng · ' + m.monthsToRebuild.toFixed(1).replace('.', ',') + ' tháng để bù lại';
+  } else { el('rShare').textContent = 'không còn dư'; el('rShareSub').textContent = 'chi phí cố định đã bằng hoặc vượt thu nhập'; }
+
+  el('rCover').textContent = isFinite(m.coverage) ? m.coverage.toFixed(1).replace('.', ',') + ' lần' : '—';
+  el('rOpp').textContent = vnd(m.opp5y);
+
+  var u = '';
+  UNITS.forEach(function(x){ var q = Math.round(d.price / x.p); if(q >= 1) u += '<div class="r-line"><span>' + x.n + '</span><span>' + fmt.format(q) + '</span></div>'; });
+  el('rUnits').innerHTML = u || '<div class="r-sub">giá quá nhỏ để quy đổi</div>';
+
+  var g = '';
+  goals.filter(function(x){ return x.name && x.amount > 0; }).forEach(function(x){
+    var ratio = x.amount > 0 ? d.price / x.amount : 0;
+    g += '<div class="r-line"><span>' + esc(x.name) + '</span><span>' +
+         (ratio >= 1 ? fmt.format(Math.round(ratio * 10) / 10).replace('.', ',') + ' lần' : Math.round(ratio * 100) + '%') +
+         '</span></div>';
+  });
+  el('rGoals').innerHTML = g ? '<div class="r-sub" style="margin:6px 0 2px">so với việc khác bạn muốn làm</div>' + g : '';
+
+  var st = scoreOf('strain', strainFactors(d, m));
+  var im = scoreOf('impulse', impulseFactors(d));
+  el('rStrainN').textContent = st.score + '/100';
+  el('rImpulseN').textContent = im.score + '/100';
+  el('rStrainBar').style.width = st.score + '%';
+  el('rImpulseBar').style.width = im.score + '%';
+  el('thr1').style.left = W.threshold + '%';
+  el('thr2').style.left = W.threshold + '%';
+  el('rStrainParts').textContent = partsText(st.parts);
+  el('rImpulseParts').textContent = partsText(im.parts);
+
+  /* giá mục tiêu */
+  var tp = targetPrice(d), t = '';
+  if(!tp.needed){
+    t += '<div class="r-target"><span class="n r-ok">' + vnd(d.price) + '</span><span class="l">giá hiện tại đã trong tầm</span></div>';
+    t += '<div class="r-sub" style="text-align:center;margin-top:4px">áp lực tài chính ' + tp.now + ', dưới ngưỡng ' + W.threshold + '</div>';
+  } else if(tp.impossible){
+    t += '<div class="r-sub">Kể cả miễn phí thì món này vẫn vượt ngưỡng áp lực — tiền dư hằng tháng hoặc tiền đang có của bạn đang quá mỏng. Cần xem lại hai ô đó trước.</div>';
+  } else {
+    t += '<div class="r-target"><span class="n">' + vnd(tp.price) + '</span><span class="l">giá cần xuống dưới mức này</span></div>';
+    t += '<div class="r-line" style="margin-top:6px"><span>Tức là giảm thêm</span><span>' + Math.round(tp.cut * 100) + '% (' + vnd(d.price - tp.price) + ')</span></div>';
+    t += '<div class="r-sub">Đặt thông báo giá ở mức này. Dưới đó, áp lực tài chính của món rơi xuống dưới ngưỡng ' + W.threshold + '.</div>';
+  }
+  el('rTarget').innerHTML = t;
+
+  /* thời điểm mua theo danh mục */
+  var cat = CATS[d.cat] || CATS.other, win = nextSaleWindow(d.cat), ti = '';
+  if(win){
+    ti += '<div class="r-line"><span>' + win.name + '</span><span>' +
+          (win.days === 0 ? 'hôm nay' : 'còn ' + win.days + ' ngày') + '</span></div>';
+    if(win.days > 0 && win.days <= 60 && tp.needed && tp.cut != null && tp.cut <= .3){
+      ti += '<div class="r-sub r-good">Mức giảm ' + Math.round(tp.cut * 100) + '% bạn cần là trong tầm một đợt sale lớn. Chờ ' + win.days + ' ngày tới đợt này có thể vừa đủ.</div>';
+    } else if(win.days > 0 && win.days <= 60 && tp.needed){
+      ti += '<div class="r-sub">Cần giảm tới ' + Math.round((tp.cut || 0) * 100) + '%, sâu hơn mức một đợt sale thường có. Chờ sale không giải quyết được khoảng cách này — vấn đề là ngân sách, không phải giá.</div>';
+    } else if(win.days > 60){
+      ti += '<div class="r-sub">Còn xa, đừng lấy đó làm lý do trì hoãn nếu bạn thật sự cần món này.</div>';
+    }
+  }
+  ti += '<div class="r-sub" style="margin-top:4px">' + cat.note + '</div>';
+  el('rTiming').innerHTML = ti;
+
+  var v = verdictFor(st.score, im.score);
+  var sub = v.sub;
+  var saleSoon = d.sale.on && isFinite(d.sale.hoursLeft) && d.sale.hoursLeft < 168 && m.discount && !m.fake;
+  if(v.cls === 'wait' && saleSoon) sub = 'đến ngày cuối sale';
+  var stamp = el('stamp');
+  stamp.className = 'stamp ' + v.cls;
+  stamp.innerHTML = '<b>' + v.title + '</b><small>' + sub + '</small>';
+  el('verdictNote').textContent = v.note;
+  if(lastVerdict !== v.cls){ stamp.classList.remove('slam'); void stamp.offsetWidth; stamp.classList.add('slam'); lastVerdict = v.cls; }
+
+  renderAlts(d);
+  refreshGoals(d);
+  renderPreview(st.score, im.score, v);
+}
+
+/* ================= goals (đánh đổi) ================= */
+function renderGoals(){
+  var h = '';
+  goals.forEach(function(g, i){
+    h += '<tr data-gi="' + i + '">';
+    h += '<td class="w-url"><input type="text" data-gf="name" value="' + esc(g.name) + '" placeholder="Việc bạn muốn dùng tiền cho" aria-label="Tên mục tiêu"></td>';
+    h += '<td><input type="number" data-gf="amount" value="' + (g.amount || '') + '" min="0" step="500000" aria-label="Số tiền cần"></td>';
+    h += '<td class="cpu" data-gcmp></td>';
+    h += '<td class="o-actions"><button class="link-btn del" data-gdel="' + i + '" aria-label="Xoá mục tiêu">×</button></td>';
+    h += '</tr>';
+  });
+  el('goalBody').innerHTML = h || '<tr><td colspan="4" style="color:var(--ink-soft);font-size:13px">Chưa có mục tiêu nào. Thêm một vài việc khác bạn đang muốn dùng tiền cho.</td></tr>';
+  refreshGoals(readInputs());
+}
+
+function refreshGoals(d){
+  var live = goals.filter(function(g){ return g.name && g.amount > 0; });
+  var max = Math.max.apply(null, [d.price].concat(live.map(function(g){ return g.amount; })));
+
+  document.querySelectorAll('#goalBody tr[data-gi]').forEach(function(tr){
+    var g = goals[+tr.getAttribute('data-gi')], cell = tr.querySelector('[data-gcmp]');
+    if(!cell) return;
+    if(!g.amount || g.amount <= 0){ cell.textContent = '—'; return; }
+    var ratio = d.price / g.amount;
+    cell.textContent = ratio >= 1
+      ? fmt.format(Math.round(ratio * 10) / 10).replace('.', ',') + ' lần mục tiêu này'
+      : Math.round(ratio * 100) + '% mục tiêu này';
+  });
+
+  if(!live.length || !(d.price > 0)){ el('goalBars').innerHTML = ''; return; }
+  var bars = '<div class="gb-legend"><span><i class="a"></i>' + esc(d.name) + '</span><span><i class="b"></i>việc khác</span></div>';
+  bars += '<div class="gb"><div class="gb-top"><b>' + esc(d.name) + '</b><span>' + vnd(d.price) + '</span></div>' +
+          '<div class="gb-track"><i class="item" style="width:' + (d.price / max * 100) + '%"></i></div></div>';
+  live.forEach(function(g){
+    bars += '<div class="gb"><div class="gb-top"><b>' + esc(g.name) + '</b><span>' + vnd(g.amount) + '</span></div>' +
+            '<div class="gb-track"><i style="width:' + (g.amount / max * 100) + '%"></i></div></div>';
+  });
+  el('goalBars').innerHTML = bars;
+}
+
+el('goalBody').addEventListener('input', function(e){
+  var f = e.target.getAttribute('data-gf'); if(!f) return;
+  var i = +e.target.closest('tr').getAttribute('data-gi');
+  goals[i][f] = f === 'amount' ? (parseFloat(e.target.value) || 0) : e.target.value;
+  render();
+});
+el('goalBody').addEventListener('click', function(e){
+  var del = e.target.getAttribute('data-gdel');
+  if(del !== null){ goals.splice(+del, 1); renderGoals(); render(); }
+});
+el('addGoal').addEventListener('click', function(){
+  goals.push({ name:'', amount:0 });
+  renderGoals();
+  var rows = el('goalBody').querySelectorAll('tr[data-gi]');
+  var last = rows[rows.length - 1]; if(last) last.querySelector('input').focus();
+});
+
+/* ================= alternatives ================= */
+function renderAlts(d){
+  var total = d.uses * d.months, best = null, bv = Infinity;
+  document.querySelectorAll('#altBody tr').forEach(function(tr){
+    var kind = tr.getAttribute('data-alt'), input = tr.querySelector('input'), cell = tr.querySelector('[data-cpu]'), cpu;
+    tr.classList.remove('best');
+    if(kind === 'new'){ input.value = d.price; cpu = total > 0 ? d.price / total : Infinity; }
+    else if(kind === 'rent'){ cpu = input.value === '' ? null : parseFloat(input.value); }
+    else { cpu = input.value === '' ? null : (total > 0 ? parseFloat(input.value) / total : Infinity); }
+
+    if(cpu === null || isNaN(cpu)){ cell.textContent = '—'; return; }
+    if(kind === 'borrow' && cpu === 0){ cell.textContent = 'miễn phí'; return; }
+    cell.textContent = isFinite(cpu) ? vnd(cpu) : '\u221E';
+    if(kind !== 'borrow' && cpu < bv){ bv = cpu; best = tr; }
+  });
+  if(best) best.classList.add('best');
+}
+
+/* ================= offers ================= */
+function renderOffers(){
+  var h = '';
+  offers.forEach(function(o, i){
+    h += '<tr data-i="' + i + '">';
+    h += '<td class="w-store"><input type="text" data-f="store" value="' + esc(o.store) + '" placeholder="Tên shop" aria-label="Tên shop"></td>';
+    h += '<td class="w-url"><input type="url" data-f="url" value="' + esc(o.url) + '" placeholder="https://…" aria-label="Link"></td>';
+    h += '<td><input type="number" data-f="price" value="' + (o.price || '') + '" min="0" step="10000" aria-label="Giá"></td>';
+    h += '<td class="o-actions"><a class="o-open" target="_blank" rel="noopener" hidden>Mở</a>';
+    h += '<button class="link-btn" data-use="' + i + '">Dùng giá này</button>';
+    h += '<button class="link-btn del" data-del="' + i + '" aria-label="Xoá nơi bán">×</button></td>';
+    h += '</tr>';
+  });
+  el('offerBody').innerHTML = h || '<tr><td colspan="4" style="color:var(--ink-soft);font-size:13px">Chưa có nơi bán nào.</td></tr>';
+  refreshOffers();
+}
+
+function refreshOffers(){
+  var best = -1, bv = Infinity;
+  offers.forEach(function(o, i){ if(o.price > 0 && o.price < bv){ bv = o.price; best = i; } });
+  document.querySelectorAll('#offerBody tr[data-i]').forEach(function(tr){
+    var i = +tr.getAttribute('data-i'), o = offers[i];
+    tr.classList.toggle('best', i === best && offers.length > 1);
+    var a = tr.querySelector('.o-open'), u = safeUrl(o.url);
+    if(u){ a.href = u; a.hidden = false; } else { a.removeAttribute('href'); a.hidden = true; }
+  });
+}
+
+el('offerBody').addEventListener('input', function(e){
+  var f = e.target.getAttribute('data-f'); if(!f) return;
+  var i = +e.target.closest('tr').getAttribute('data-i');
+  offers[i][f] = f === 'price' ? (parseFloat(e.target.value) || 0) : e.target.value;
+  refreshOffers();
+});
+el('offerBody').addEventListener('click', function(e){
+  var use = e.target.getAttribute('data-use'), del = e.target.getAttribute('data-del');
+  if(use !== null){ var o = offers[+use]; if(o && o.price > 0){ el('price').value = o.price; render(); } }
+  if(del !== null){ offers.splice(+del, 1); renderOffers(); }
+});
+el('addOffer').addEventListener('click', function(){
+  offers.push({ store:'', url:'', price:0 });
+  renderOffers();
+  var rows = el('offerBody').querySelectorAll('tr[data-i]');
+  var last = rows[rows.length - 1]; if(last) last.querySelector('input').focus();
+});
+
+/* ================= wait list ================= */
+function reviewTime(it){ return it.reviewAt ? new Date(it.reviewAt).getTime() : new Date(it.created).getTime() + 7 * DAY; }
+
+function renderWait(){
+  var open = items.filter(function(it){ return it.status === 'waiting'; });
+  el('waitCount').textContent = open.length ? '(' + open.length + ')' : '';
+  if(!items.length){ el('waitList').innerHTML = '<div class="empty">Chưa có món nào đang chờ. Đánh giá một món rồi bấm “Đưa vào danh sách chờ”.</div>'; return; }
+
+  var now = Date.now(), h = '<div class="card-list">';
+  items.slice().sort(function(a,b){ return reviewTime(a) - reviewTime(b); }).forEach(function(it){
+    var rt = reviewTime(it), ready = now >= rt && it.status === 'waiting';
+    var first = it.ratings[0], last = it.ratings[it.ratings.length - 1];
+    var ageDays = Math.floor((now - new Date(it.created).getTime()) / DAY);
+
+    h += '<div class="entry' + (ready ? ' ready' : '') + '">';
+    h += '<div class="entry-top"><span class="entry-name">' + esc(it.name) + '</span><span class="entry-meta">' + vnd(it.price) + (it.listPrice ? ' · gốc ' + vnd(it.listPrice) : '') + '</span></div>';
+    h += '<div class="entry-body">Ghi ' + (ageDays ? ageDays + ' ngày trước' : 'hôm nay') + ' · thèm muốn lúc đó ' + first.v + '/10';
+    if(it.ratings.length > 1) h += ' · giờ <b class="' + (last.v > first.v ? 'up' : 'down') + '">' + last.v + '/10</b>';
+    if(it.status === 'bought') h += ' · <b>đã mua</b>';
+    if(it.status === 'skipped') h += ' · <b>đã bỏ qua</b>';
+    h += '</div>';
+
+    if(it.saleEnd && it.status === 'waiting'){
+      var se = new Date(it.saleEnd).getTime();
+      h += '<div class="entry-body">' + (se > now ? 'Sale hết lúc ' + when(it.saleEnd) + ' (còn ' + duration((se - now) / HOUR) + ')' : 'Đợt sale đã kết thúc') + '</div>';
+    }
+
+    var links = (it.offers || []).filter(function(o){ return o.store || o.url; });
+    if(links.length){
+      h += '<div class="entry-links">';
+      links.forEach(function(o){
+        var label = esc(o.store || 'Link');
+        h += o.url ? '<a href="' + esc(o.url) + '" target="_blank" rel="noopener">' + label + '</a>' : '<b>' + label + '</b>';
+        if(o.price) h += '<span>' + vnd(o.price) + '</span>';
+      });
+      h += '</div>';
+    }
+
+    /* theo dõi giá: giá mục tiêu + các lần ghi giá */
+    if(it.status === 'waiting'){
+      var log = it.priceLog || [], cur = log.length ? log[log.length - 1].p : it.price;
+      var lowest = log.reduce(function(a, x){ return Math.min(a, x.p); }, it.price);
+      h += '<div class="pricebox">';
+      if(it.target > 0){
+        var hit = cur <= it.target;
+        h += '<div class="entry-body">Giá mục tiêu <b>' + vnd(it.target) + '</b> · hiện tại <b>' + vnd(cur) + '</b>';
+        h += hit ? ' · <b class="down">đã đạt ngưỡng</b>' : ' · còn cách ' + vnd(cur - it.target);
+        h += '</div>';
+        h += '<div class="bar" style="margin-top:5px"><i class="' + (hit ? 'ok' : 'strain') + '" style="width:' + clamp(it.target / cur * 100, 0, 100) + '%"></i></div>';
+      } else {
+        h += '<div class="entry-body">Giá lúc ghi ' + vnd(it.price) + ' · hiện tại <b>' + vnd(cur) + '</b>' + (lowest < it.price ? ' · thấp nhất từng ghi ' + vnd(lowest) : '') + '</div>';
+      }
+      if(log.length > 1){
+        h += '<div class="entry-body">Đã ghi ' + log.length + ' lần: ' + log.slice(-5).map(function(x){ return fmt.format(Math.round(x.p / 1000)) + 'k'; }).join(' → ') + '</div>';
+      }
+      h += '<div class="rerate"><label for="pc' + it.id + '">Hôm nay bán bao nhiêu?</label>';
+      h += '<input type="number" id="pc' + it.id + '" placeholder="' + cur + '" min="0" step="50000" style="width:130px;text-align:right">';
+      h += '<button class="btn small" data-price="' + it.id + '">Ghi giá</button></div>';
+      h += '</div>';
+    }
+
+    if(ready){
+      h += '<div class="rerate"><label for="rr' + it.id + '">Giờ bạn còn muốn nó bao nhiêu?</label>';
+      h += '<input type="range" id="rr' + it.id + '" min="1" max="10" value="5"><output class="val" id="rro' + it.id + '">5</output>';
+      h += '<button class="btn small" data-rate="' + it.id + '">Chấm lại</button></div>';
+    } else if(it.status === 'waiting' && it.ratings.length < 2){
+      h += '<div class="entry-body">Chấm lại lúc ' + when(new Date(rt).toISOString()) + ' (còn ' + duration((rt - now) / HOUR) + ').</div>';
+    }
+
+    if(it.status === 'waiting' && it.ratings.length > 1){
+      h += '<div class="rerate"><button class="btn small" data-done="bought:' + it.id + '">Tôi đã mua</button>';
+      h += '<button class="btn small" data-done="skipped:' + it.id + '">Tôi bỏ qua</button></div>';
+    }
+    h += '</div>';
+  });
+  el('waitList').innerHTML = h + '</div>';
+}
+
+el('waitList').addEventListener('input', function(e){
+  if(e.target.id && e.target.id.indexOf('rr') === 0){ var o = el('rro' + e.target.id.slice(2)); if(o) o.textContent = e.target.value; }
+});
+el('waitList').addEventListener('click', function(e){
+  var pid = e.target.getAttribute('data-price');
+  if(pid){
+    var pit = items.find(function(x){ return x.id === pid; }), pin = el('pc' + pid);
+    var pv = pin ? parseFloat(pin.value) : NaN;
+    if(pit && isFinite(pv) && pv > 0){
+      pit.priceLog = (pit.priceLog || []).concat([{ t: new Date().toISOString(), p: pv }]);
+      saveJSON(K_ITEMS, items); refreshAll();
+    }
+    return;
+  }
+  var rate = e.target.getAttribute('data-rate');
+  if(rate){
+    var it = items.find(function(x){ return x.id === rate; }), sl = el('rr' + rate);
+    if(it && sl){ it.ratings.push({ t: new Date().toISOString(), v: parseInt(sl.value, 10) }); saveJSON(K_ITEMS, items); refreshAll(); }
+    return;
+  }
+  var done = e.target.getAttribute('data-done');
+  if(done){
+    var p = done.split(':'), item = items.find(function(x){ return x.id === p[1]; });
+    if(item){ item.status = p[0]; saveJSON(K_ITEMS, items); refreshAll(); }
+  }
+});
+
+/* ================= profile ================= */
+function renderProfile(){
+  if(!items.length){ el('profileBody').innerHTML = '<div class="empty">Chưa có gì để phân tích. Ghi vài món vào danh sách chờ, hoặc nạp dữ liệu mẫu để xem hồ sơ trông ra sao.</div>'; return; }
+  var rated = items.filter(function(it){ return it.ratings.length > 1; });
+  var bought = items.filter(function(it){ return it.status === 'bought'; });
+  var skipped = items.filter(function(it){ return it.status === 'skipped'; });
+  var total = items.reduce(function(a,b){ return a + b.price; }, 0);
+  var saved = skipped.reduce(function(a,b){ return a + b.price; }, 0);
+  var H = halfLifeInfo();
+
+  var h = '<div class="stat-grid">';
+  h += '<div class="stat"><span class="n">' + items.length + '</span><span class="l">món đã ghi lại</span></div>';
+  h += '<div class="stat"><span class="n">' + fmt.format(total) + '</span><span class="l">đồng đã cân nhắc chi</span></div>';
+  h += '<div class="stat"><span class="n">' + bought.length + '/' + items.length + '</span><span class="l">cuối cùng đã mua</span></div>';
+  h += '<div class="stat"><span class="n">' + fmt.format(saved) + '</span><span class="l">đồng không tiêu vì đã chờ</span></div>';
+  h += '</div>';
+
+  if(rated.length){
+    var f = 0, l = 0;
+    rated.forEach(function(it){ f += it.ratings[0].v; l += it.ratings[it.ratings.length-1].v; });
+    f /= rated.length; l /= rated.length;
+    h += '<p class="note">Trong ' + rated.length + ' món bạn đã chấm lại, mức thèm muốn trung bình rơi từ <b>' + f.toFixed(1).replace('.', ',') + '/10</b> xuống <b>' + l.toFixed(1).replace('.', ',') + '/10</b>.';
+    if(H.fromData) h += ' Ham muốn của bạn có <b>thời gian bán rã khoảng ' + Math.round(H.days) + ' ngày</b>: cứ chừng đó ngày, mức muốn một món giảm đi một nửa. Con số này đang được dùng để tính lời khuyên khi món đồ đang giảm giá.';
+    h += '</p>';
+    var regret = bought.filter(function(it){ return it.ratings[it.ratings.length-1].v <= 4; });
+    if(regret.length) h += '<p class="note">Có <b>' + regret.length + ' món đã mua</b> mà giờ bạn chỉ còn chấm 4/10 trở xuống, tổng ' + vnd(regret.reduce(function(a,b){ return a + b.price; }, 0)) + '.</p>';
+  } else {
+    h += '<p class="note">Chưa món nào được chấm lại lần hai. Khi đến hạn, chấm lại ở tab Chờ đã để bắt đầu thấy đường cong suy giảm.</p>';
+  }
+  el('profileBody').innerHTML = h;
+}
+
+el('seedBtn').addEventListener('click', function(){
+  var now = Date.now();
+  function iso(d){ return new Date(now - d * DAY).toISOString(); }
+  var demo = [
+    {name:'Bàn phím cơ',        cat:'tech',    price:2400000, status:'bought',  d0:41, v0:9, d1:34, v1:6, shop:'Shopee', tgt:1800000},
+    {name:'Máy pha cà phê',     cat:'home',    price:3900000, status:'skipped', d0:36, v0:8, d1:29, v1:3, shop:'Tiki',   tgt:2500000},
+    {name:'Áo khoác da',        cat:'fashion', price:1800000, status:'bought',  d0:30, v0:9, d1:23, v1:2, shop:'Lazada', tgt:0},
+    {name:'Khoá học dựng phim', cat:'edu',     price:1200000, status:'bought',  d0:25, v0:7, d1:18, v1:7, shop:'Unica',  tgt:0},
+    {name:'Tay cầm chơi game',  cat:'tech',    price:1500000, status:'skipped', d0:21, v0:8, d1:14, v1:4, shop:'Shopee', tgt:0},
+    {name:'Giày chạy bộ',       cat:'sport',   price:2200000, status:'waiting', d0:9,  v0:7, d1:2,  v1:5, shop:'Tiki',   tgt:1700000,
+     log:[[9,2200000],[5,2050000],[1,1890000]]}
+  ];
+  items = demo.map(function(x, i){
+    return { id:'demo' + i, name:x.name, cat:x.cat, price:x.price, status:x.status, created:iso(x.d0), reviewAt:iso(x.d0 - 7),
+             saleEnd:null, listPrice:null, target:x.tgt || 0,
+             priceLog:(x.log || [[x.d0, x.price]]).map(function(p){ return { t:iso(p[0]), p:p[1] }; }),
+             goals:[{name:'Quỹ dự phòng 3 tháng', amount:15000000}],
+             offers:[{store:x.shop, url:'', price:x.price}],
+             ratings:[{t:iso(x.d0), v:x.v0},{t:iso(x.d1), v:x.v1}] };
+  });
+  saveJSON(K_ITEMS, items); refreshAll();
+});
+el('clearBtn').addEventListener('click', function(){ items = []; saveJSON(K_ITEMS, items); refreshAll(); });
+
+/* ================= weights tab ================= */
+function buildWeights(){
+  ['strain','impulse'].forEach(function(g){
+    var tot = FACTORS[g].reduce(function(a,x){ return a + Math.max(0, +W[g][x.k] || 0); }, 0), h = '';
+    FACTORS[g].forEach(function(x){
+      var w = W[g][x.k], share = tot > 0 ? Math.round(w / tot * 100) : 0;
+      h += '<div class="w-row"><div class="w-top"><label for="w-' + g + '-' + x.k + '">' + x.label + '</label>';
+      h += '<input type="range" id="w-' + g + '-' + x.k + '" data-g="' + g + '" data-k="' + x.k + '" min="0" max="50" step="1" value="' + w + '">';
+      h += '<output class="val">' + w + '</output><span class="w-share">' + share + '%</span></div>';
+      h += '<div class="w-how">' + x.how + '</div></div>';
+    });
+    el(g === 'strain' ? 'wStrain' : 'wImpulse').innerHTML = h;
+  });
+  el('wThr').value = W.threshold; el('wThrVal').textContent = W.threshold;
+  el('wRef').value = W.refCpu; el('wHl').value = W.defaultHalfLife;
+  var H = halfLifeInfo();
+  el('wHlHow').textContent = H.fromData
+    ? 'Đang dùng ' + Math.round(H.days) + ' ngày, tính từ ' + H.n + ' món bạn đã chấm lại. Giá trị mặc định chỉ dùng khi chưa có dữ liệu.'
+    : 'Chưa có dữ liệu của riêng bạn nên đang dùng giá trị này. Dùng để ước tính khả năng bạn vẫn muốn món đồ sau một tuần.';
+}
+
+function renderPreview(s, i, v){
+  el('wPreview').innerHTML = 'Với món đang đánh giá: áp lực <b>' + s + '</b>, bốc đồng <b>' + i + '</b>, ngưỡng <b>' + W.threshold + '</b> → <b>' + v.title + '</b>';
+}
+
+function onWeights(){ saveJSON(K_W, W); buildWeights(); render(); }
+
+['wStrain','wImpulse'].forEach(function(id){
+  el(id).addEventListener('input', function(e){
+    var g = e.target.getAttribute('data-g'), k = e.target.getAttribute('data-k'); if(!g) return;
+    W[g][k] = parseInt(e.target.value, 10);
+    saveJSON(K_W, W);
+    var tot = FACTORS[g].reduce(function(a,x){ return a + Math.max(0, +W[g][x.k] || 0); }, 0);
+    el(id).querySelectorAll('input[type="range"]').forEach(function(r){
+      var row = r.parentNode, w = +r.value;
+      row.querySelector('output').textContent = w;
+      row.querySelector('.w-share').textContent = (tot > 0 ? Math.round(w / tot * 100) : 0) + '%';
+    });
+    render();
+  });
+});
+el('wThr').addEventListener('input', function(){ W.threshold = +this.value; el('wThrVal').textContent = W.threshold; saveJSON(K_W, W); render(); });
+el('wRef').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.refCpu = v; saveJSON(K_W, W); render(); } });
+el('wHl').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.defaultHalfLife = v; saveJSON(K_W, W); buildWeights(); render(); } });
+el('wReset').addEventListener('click', function(){ W = clone(DEFAULTS); onWeights(); });
+
+/* ================= guide ================= */
+var PRESETS = {
+  student: { strain:{share:30,cpu:15,cover:40,hours:15}, impulse:{recency:30,source:20,owns:15,desire:15,urgency:15,night:5}, threshold:35 },
+  saver:   { strain:{share:40,cpu:15,cover:20,hours:25}, impulse:{recency:25,source:20,owns:20,desire:15,urgency:15,night:5}, threshold:30 },
+  stable:  { strain:{share:30,cpu:35,cover:15,hours:20}, impulse:{recency:35,source:25,owns:20,desire:10,urgency:10,night:0}, threshold:45 }
+};
+var guide = el('guide');
+function openGuide(){
+  if(typeof guide.showModal === 'function') guide.showModal(); else guide.setAttribute('open', '');
+}
+function closeGuide(){
+  if(typeof guide.close === 'function') guide.close(); else guide.removeAttribute('open');
+  el('helpBtn').focus();
+}
+el('helpBtn').addEventListener('click', openGuide);
+el('guideClose').addEventListener('click', closeGuide);
+el('guideDone').addEventListener('click', closeGuide);
+guide.addEventListener('click', function(e){ if(e.target === guide) closeGuide(); });
+guide.addEventListener('click', function(e){
+  var p = e.target.getAttribute('data-preset');
+  if(!p || !PRESETS[p]) return;
+  var src = PRESETS[p];
+  W.strain = clone(src.strain); W.impulse = clone(src.impulse); W.threshold = src.threshold;
+  onWeights();
+  document.querySelectorAll('[data-preset]').forEach(function(b){ b.textContent = 'Áp dụng'; });
+  e.target.textContent = 'Đã áp dụng';
+});
+
+/* ================= form events ================= */
+function fromSubTable(e){ return e.target.closest('#offerBody') || e.target.closest('#goalBody'); }
+el('formPanel').addEventListener('input', function(e){ if(!fromSubTable(e)) render(); });
+el('formPanel').addEventListener('change', function(e){ if(!fromSubTable(e)) render(); });
+
+el('saveBtn').addEventListener('click', function(){
+  var d = readInputs(), m = metrics(d);
+  if(d.price <= 0){ el('saveMsg').textContent = 'Nhập giá trước đã.'; return; }
+  var now = Date.now(), review = now + 7 * DAY, saleEnd = null;
+  if(d.sale.on && isFinite(d.sale.hoursLeft) && d.sale.hoursLeft > 0){
+    saleEnd = now + d.sale.hoursLeft * HOUR;
+    if(saleEnd < review) review = Math.max(now, saleEnd - 6 * HOUR);
+  }
+  var tp = targetPrice(d);
+  items.push({
+    id: 'i' + now, name: d.name, cat: d.cat, price: d.price, status: 'waiting',
+    created: new Date(now).toISOString(), reviewAt: new Date(review).toISOString(),
+    saleEnd: saleEnd ? new Date(saleEnd).toISOString() : null,
+    target: tp.needed && tp.price ? Math.round(tp.price) : 0,
+    priceLog: [{ t: new Date(now).toISOString(), p: d.price }],
+    goals: goals.filter(function(g){ return g.name && g.amount > 0; }).map(function(g){ return { name:g.name.trim(), amount:g.amount }; }),
+    listPrice: m.discount ? d.sale.list : null,
+    offers: offers.filter(function(o){ return o.store || safeUrl(o.url); }).map(function(o){ return { store:o.store.trim(), url:safeUrl(o.url), price:o.price || 0 }; }),
+    ratings: [{ t: new Date(now).toISOString(), v: d.desire }]
+  });
+  saveJSON(K_ITEMS, items);
+  refreshAll();
+  el('saveMsg').textContent = '\u201C' + d.name + '\u201D đã vào danh sách chờ. ' +
+    (review < now + 7 * DAY ? 'Sale hết trước 7 ngày nên hạn chấm lại được dời lên ' + when(new Date(review).toISOString()) + '.' : 'Chấm lại sau 7 ngày.');
+});
+
+el('resetBtn').addEventListener('click', function(){
+  el('name').value = ''; el('price').value = 0; el('uses').value = 1; el('months').value = 12;
+  el('desire').value = 5; el('owns').checked = false; el('saleOn').checked = false;
+  el('listPrice').value = ''; el('low30').value = '';
+  el('altUsed').value = ''; el('altRent').value = ''; el('altBorrow').value = '';
+  offers = []; renderOffers();
+  goals = []; renderGoals();
+  el('saveMsg').textContent = '';
+  render();
+});
+
+/* ================= tabs & theme ================= */
+document.querySelectorAll('.tab').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', 'false'); });
+    btn.setAttribute('aria-selected', 'true');
+    ['eval','wait','profile','weights'].forEach(function(t){ el('tab-' + t).hidden = (t !== btn.getAttribute('data-tab')); });
+    if(btn.getAttribute('data-tab') === 'wait') renderWait();
+  });
+});
+
+function applyTheme(t){
+  if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  document.querySelectorAll('[data-theme-set]').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-theme-set') === (t || 'auto') ? 'true' : 'false'); });
+}
+document.querySelectorAll('[data-theme-set]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var t = b.getAttribute('data-theme-set');
+    try{ if(t === 'auto') localStorage.removeItem(K_THEME); else localStorage.setItem(K_THEME, t); }catch(e){}
+    applyTheme(t);
+  });
+});
+applyTheme((function(){ try{ return localStorage.getItem(K_THEME) || 'auto'; }catch(e){ return 'auto'; } })());
+
+function refreshAll(){ renderWait(); renderProfile(); buildWeights(); render(); }
+
+renderOffers();
+renderGoals();
+refreshAll();
+
+/* ================= first-visit intro ================= */
+var intro = el('intro'), K_INTRO = 'justbuyit.seenIntro';
+function openIntro(){ if(typeof intro.showModal === 'function') intro.showModal(); else intro.setAttribute('open', ''); }
+function closeIntro(){
+  if(typeof intro.close === 'function') intro.close(); else intro.removeAttribute('open');
+  try{ localStorage.setItem(K_INTRO, '1'); }catch(e){}
+}
+intro.addEventListener('click', function(e){
+  if(e.target === intro || e.target.hasAttribute('data-close-intro')) closeIntro();
+});
+intro.addEventListener('cancel', function(){ try{ localStorage.setItem(K_INTRO, '1'); }catch(e){} });
+el('introLink').addEventListener('click', openIntro);
+var seen = false;
+try{ seen = localStorage.getItem(K_INTRO) === '1'; }catch(e){}
+if(!seen) openIntro();
+})();
+</script>
+</body>
+</html>
