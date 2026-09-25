@@ -42,7 +42,7 @@ src/                  logic tính toán, không phụ thuộc giao diện
   decay.py            thời gian bán rã của ham muốn
   db.py               lưu trữ bằng sqlite3
   personalize.py      thời gian chờ riêng, báo cáo hiệu chỉnh
-tests/                172 test, chạy bằng pytest
+tests/                190 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
@@ -215,6 +215,42 @@ chỉnh cho riêng mình:
    yếu tố nào đang kéo điểm, rồi chỉnh trọng số đó.
 5. Chỉ chỉnh ngưỡng sau khi trọng số đã ổn, mỗi lần 5 điểm.
 
+## Xuất và nhập dữ liệu
+
+Tab **Hồ sơ** có **Tải dữ liệu về** (xuất JSON) và **Nạp dữ liệu từ file**.
+Nạp có hai chế độ: thêm vào dữ liệu hiện có, hoặc thay thế toàn bộ.
+
+Đây là cách giải quyết chuyện bản online không giữ được dữ liệu, thay vì
+dựng database trên host. Lý do chọn hướng này: đưa database lên host mà app
+vẫn công khai và không có xác thực thì **mọi người dùng chung một database
+và ai cũng mở được hồ sơ của người khác** để xem thu nhập, tiền tiết kiệm.
+Hai việc đó phải làm cùng nhau, nên cả hai nằm ở kế hoạch dài hạn. Xuất và
+nhập file giữ dữ liệu trong tay người dùng, không cần tài khoản, và không
+thêm chỗ nào có thể sập lúc demo.
+
+File xuất ra có `version` để sau này lược đồ đổi thì vẫn đọc được file cũ,
+và chỉ chứa **một hồ sơ** chứ không phải cả database. Phần nhập kiểm tra
+định dạng trước, lọc bỏ những cột không có trong lược đồ, và bỏ qua dòng
+rác thay vì làm sập cả lần nhập — file do người dùng tự chọn nên không tin
+được ngay.
+
+## Giao diện
+
+Bảng màu trong `.streamlit/config.toml` lấy từ bản dựng thử HTML, theo ẩn dụ
+tờ hoá đơn đặt trên mặt bàn: vùng nội dung là giấy, thanh bên là mặt bàn,
+màu nhấn là màu mực con dấu. Mỗi chế độ sáng/tối có bảng màu riêng, và app
+theo đúng chế độ người dùng đang chọn.
+
+Hai thanh điểm đổi màu theo **trạng thái**: dưới ngưỡng xanh, vượt ngưỡng
+đỏ, kèm vạch dọc đánh dấu ngưỡng. Vạch đó là thứ làm con số có nghĩa — 47
+tự nó không nói gì, nhưng "47 với vạch ngưỡng ở 40" thì thấy ngay là đã
+vượt. Hai màu này đạt tương phản từ 3:1 trên cả nền giấy sáng và nền giấy
+tối nên không cần đổi theo chế độ.
+
+`toolbarMode = "minimal"` ẩn thanh công cụ của nhà phát triển (nút Edit,
+biểu tượng GitHub) để người xem chỉ thao tác với chính trang web. Quản lý
+app vẫn làm ở share.streamlit.io.
+
 ## Giới hạn đã biết
 
 - **Webapp không tự đọc giá từ các sàn.** Giá là do người dùng tự ghi.
@@ -237,7 +273,7 @@ chỉnh cho riêng mình:
 |---|---|
 | Đã hoàn thiện | Mô hình tính điểm hai trục, hoá đơn chi phí, giá mục tiêu, phát hiện giảm giá ảo, lịch sale theo danh mục, nhật ký hoãn mua, thời gian bán rã, so sánh mục tiêu thay thế, lưu dữ liệu bằng sqlite3, cá nhân hoá theo hồ sơ, báo cáo hiệu chỉnh, script gửi email nhắc |
 | Ngắn hạn | Đưa database lên host để nhắc tự động hằng ngày |
-| Dài hạn | Tự động lấy giá từ sàn, đăng nhập thật, thống kê chéo nhiều người dùng, thay hiệu số trung bình bằng hồi quy logistic khi đủ dữ liệu |
+| Dài hạn | Đăng nhập thật **đi kèm** database trên host (hai việc không tách được), tự động lấy giá từ sàn, thống kê chéo nhiều người dùng, thay hiệu số trung bình bằng hồi quy logistic khi đủ dữ liệu |
 
 ## Gửi email nhắc
 

@@ -7,6 +7,7 @@ muốn đổi giao diện thì sửa file này mà không sợ làm sai con số
 Chạy: streamlit run app.py
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -72,6 +73,42 @@ def receipt_section(title: str) -> str:
     return (
         f'<div style="font-family:monospace;font-size:10.5px;letter-spacing:.14em;'
         f'opacity:.6;margin:2px 0 4px">{title}</div>'
+    )
+
+
+# Hai màu cho thanh điểm: dưới ngưỡng xanh, vượt ngưỡng đỏ. Đây là màu
+# TRẠNG THÁI chứ không phải màu danh tính — hai thanh đã có nhãn riêng, màu
+# chỉ để nói "mức này có đáng lo chưa". Cả hai đạt tương phản từ 3:1 trên cả
+# nền giấy sáng và nền giấy tối, nên không cần đổi theo chế độ.
+BAR_UNDER = "#3D8F69"
+BAR_OVER = "#D2554A"
+
+
+def meter(label: str, score: int, threshold: float, parts: list) -> None:
+    """Vẽ một thanh điểm kèm vạch ngưỡng.
+
+    Vạch ngưỡng là thứ làm con số có nghĩa: 47/100 tự nó không nói gì, nhưng
+    "47 với vạch ngưỡng ở 40" thì thấy ngay là đã vượt.
+    """
+    over = score >= threshold
+    fill = BAR_OVER if over else BAR_UNDER
+
+    st.markdown(
+        receipt_line(label, f"{score}/100")
+        + f'<div style="height:9px;background:color-mix(in srgb, currentColor 14%, transparent);'
+          f'position:relative;overflow:hidden;margin:3px 0 4px">'
+          f'<span style="position:absolute;inset:0 auto 0 0;width:{score}%;'
+          f'background:{fill}"></span>'
+          f'<span style="position:absolute;top:0;bottom:0;left:{threshold}%;'
+          f'width:2px;background:currentColor;opacity:.5"></span>'
+          f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    top = " · ".join(f"{s} +{round(p)}" for _, s, p in parts)
+    st.caption(
+        (top if top else "không yếu tố nào đáng kể")
+        + (f" — đã vượt ngưỡng {round(threshold)}" if over else "")
     )
 
 
@@ -200,7 +237,7 @@ def intro_body() -> None:
         "Công cụ không tự đọc giá từ các sàn. Giá là do bạn ghi vào, và lịch "
         "giảm giá theo danh mục chỉ là các mốc sale định kỳ, không phải dự báo.",
         "Tên hồ sơ chỉ để tách dữ liệu, **không có xác thực** — ai cũng chọn "
-        "được hồ sơ của người khác.",
+        "được hồ sơ của người khác. Đừng nhập số liệu thật vào bản online.",
         "Đây là công cụ để nhìn lại thói quen chi tiêu, **không phải lời "
         "khuyên tài chính**.",
     ]
@@ -208,15 +245,18 @@ def intro_body() -> None:
 
     if ON_CLOUD:
         st.warning(
-            "Bản online này **không giữ được dữ liệu**: mỗi lần app khởi động "
-            "lại là mất hết. Muốn xem thử ngay thì vào tab **Hồ sơ** bấm "
-            "**Nạp dữ liệu mẫu**.",
+            "**Bản online không giữ được dữ liệu** — mỗi lần app khởi động lại "
+            "là mất hết. Hai việc nên biết:\n\n"
+            "- Muốn xem thử ngay: tab **Hồ sơ** → **Nạp dữ liệu mẫu**\n"
+            "- Muốn giữ dữ liệu mình nhập: tab **Hồ sơ** → **Tải dữ liệu về**, "
+            "lần sau quay lại thì nạp file đó lên",
             icon="⚠️",
         )
     else:
         st.info(
-            f"Dữ liệu lưu tại `{DB_PATH}` trên máy này. Không gửi đi đâu, "
-            "không có tài khoản.",
+            f"Dữ liệu lưu tại `{DB_PATH}` trên máy này, không gửi đi đâu. "
+            "Muốn sao lưu hoặc mang sang máy khác thì dùng **Tải dữ liệu về** "
+            "ở tab Hồ sơ.",
             icon="💾",
         )
 
@@ -558,7 +598,7 @@ with tab_eval:
                 st.success(
                     f"Giá hiện tại đã trong tầm — áp lực tài chính "
                     f"{target.current_score}, dưới ngưỡng {round(W.threshold)}.",
-                    icon="✓",
+                    icon="✅",
                 )
             elif target.impossible:
                 st.info(
@@ -626,17 +666,8 @@ with tab_eval:
             st.markdown(receipt_rule(), unsafe_allow_html=True)
             for label, score in (("Áp lực tài chính", st_score),
                                  ("Mức độ bốc đồng", im_score)):
-                st.markdown(
-                    receipt_line(label, f"{score.value}/100"),
-                    unsafe_allow_html=True,
-                )
-                st.progress(score.value / 100)
-                top = score.top_parts()
-                st.caption(
-                    " · ".join(f"{s} +{round(p)}" for _, s, p in top)
-                    if top else "không yếu tố nào đáng kể"
-                )
-            st.caption(f"Ngưỡng tính là cao: {round(W.threshold)}")
+                meter(label, score.value, W.threshold, score.top_parts())
+            st.caption(f"Vạch dọc là ngưỡng tính là cao: {round(W.threshold)}")
 
             # Con dấu
             st.markdown(receipt_rule(), unsafe_allow_html=True)
@@ -738,7 +769,7 @@ with tab_wait:
                         if tgt > 0:
                             if current <= tgt:
                                 st.success(f"Đã về mức mục tiêu {vnd(tgt)}.",
-                                           icon="✓")
+                                           icon="✅")
                             else:
                                 st.caption(
                                     f"Giá mục tiêu {vnd(tgt)} · "
@@ -920,15 +951,65 @@ with tab_profile:
                     use_container_width=True, hide_index=True,
                 )
 
+    # ---------------------------------------- xuất / nhập dữ liệu
+    st.divider()
+    st.markdown("#### Dữ liệu của bạn")
+    st.caption(
+        "Bản online không giữ được dữ liệu qua mỗi lần app khởi động lại. "
+        "Tải file về là cách giữ, và cũng là cách mang dữ liệu sang máy khác."
+        if ON_CLOUD else
+        "Tải file về để sao lưu, hoặc mang dữ liệu sang máy khác."
+    )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        payload = db.export_profile(profile, path=DB_PATH)
+        st.download_button(
+            "Tải dữ liệu về",
+            data=json.dumps(payload, ensure_ascii=False, indent=2),
+            file_name=f"just-buy-it-{profile}-{datetime.now():%Y%m%d}.json",
+            mime="application/json",
+            use_container_width=True,
+            disabled=not payload["items"],
+            help=("Chưa có món nào để tải" if not payload["items"]
+                  else f"{len(payload['items'])} món"),
+        )
+
+    with c2:
+        uploaded = st.file_uploader("Nạp dữ liệu từ file", type="json",
+                                    label_visibility="collapsed")
+        if uploaded is not None:
+            mode = st.radio(
+                "Cách nạp",
+                ["Thêm vào dữ liệu hiện có", "Thay thế toàn bộ"],
+                horizontal=True, label_visibility="collapsed",
+            )
+            if st.button("Nạp file này", type="primary",
+                         use_container_width=True):
+                try:
+                    data = json.load(uploaded)
+                    n = db.import_profile(
+                        data, profile=profile,
+                        replace=(mode == "Thay thế toàn bộ"), path=DB_PATH,
+                    )
+                    st.success(f"Đã nạp {n} món vào hồ sơ “{profile}”.")
+                    st.rerun()
+                except json.JSONDecodeError:
+                    st.error("File không phải JSON hợp lệ.")
+                except db.ImportError_ as exc:
+                    st.error(str(exc))
+
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("Nạp dữ liệu mẫu"):
+        if st.button("Nạp dữ liệu mẫu", use_container_width=True):
             from scripts.seed_demo import seed
             seed(profile=profile, path=DB_PATH)
             st.rerun()
     with c2:
-        if st.button("Xoá hết dữ liệu của hồ sơ này"):
+        if st.button("Xoá hết dữ liệu của hồ sơ này",
+                     use_container_width=True):
             with db.connect(DB_PATH) as conn:
                 conn.execute("DELETE FROM items WHERE profile = ?", (profile,))
             st.rerun()

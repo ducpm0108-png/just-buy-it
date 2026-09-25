@@ -511,6 +511,182 @@ def load_weights(profile: str, path: Path = DEFAULT_PATH) -> Optional[dict]:
         return None    # dữ liệu hỏng thì coi như chưa có, dùng mặc định
 
 
+# ------------------------------------------------------- xuất / nhập dữ liệu
+
+EXPORT_VERSION = 1
+
+
+def export_profile(profile: str, path: Path = DEFAULT_PATH) -> dict:
+    """Xuất toàn bộ dữ liệu của một hồ sơ thành dict để ghi ra JSON.
+
+    Có `version` để nếu sau này lược đồ đổi thì vẫn biết cách đọc file cũ.
+
+    Chỉ xuất đúng một hồ sơ, không xuất cả database: người dùng tải về dữ
+    liệu của mình, không kèm của người khác.
+    """
+    items: List[dict] = []
+
+    with connect(path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM items WHERE profile = ? ORDER BY id", (profile,)
+        ).fetchall()
+
+        for row in rows:
+            item = {k: row[k] for k in row.keys() if k not in ("id", "profile")}
+            item["ratings"] = [
+                dict(r) for r in conn.execute(
+                    "SELECT rated_at, desire FROM ratings WHERE item_id = ? "
+                    "ORDER BY rated_at", (row["id"],)
+                ).fetchall()
+            ]
+            item["price_log"] = [
+                dict(r) for r in conn.execute(
+                    "SELECT checked_at, price FROM price_log WHERE item_id = ? "
+                    "ORDER BY checked_at", (row["id"],)
+                ).fetchall()
+            ]
+            item["goals"] = [
+                dict(r) for r in conn.execute(
+                    "SELECT name, amount FROM goals WHERE item_id = ?",
+                    (row["id"],)
+                ).fetchall()
+            ]
+            item["offers"] = [
+                dict(r) for r in conn.execute(
+                    "SELECT store, url, price FROM offers WHERE item_id = ?",
+                    (row["id"],)
+                ).fetchall()
+            ]
+            items.append(item)
+
+        settings = {
+            r["key"]: r["value"] for r in conn.execute(
+                "SELECT key, value FROM settings WHERE profile = ?", (profile,)
+            ).fetchall()
+        }
+
+    return {
+        "version": EXPORT_VERSION,
+        "profile": profile,
+        "exported_at": datetime.now().isoformat(),
+        "settings": settings,
+        "items": items,
+    }
+
+
+class ImportError_(ValueError):
+    """File nhập vào không đúng định dạng."""
+
+
+def import_profile(data: dict, profile: Optional[str] = None,
+                   replace: bool = False,
+                   path: Path = DEFAULT_PATH) -> int:
+    """Nhập dữ liệu từ dict đã đọc từ JSON. Trả về số món đã nhập.
+
+    `profile=None` thì dùng tên hồ sơ ghi trong file; truyền tên khác thì
+    nhập vào hồ sơ đó (dùng khi muốn xem dữ liệu của người khác mà không
+    trộn vào hồ sơ mình).
+
+    `replace=True` thì xoá dữ liệu cũ của hồ sơ trước khi nhập; mặc định là
+    nhập thêm vào.
+
+    File do người dùng tự chọn nên phải kiểm tra định dạng trước: thiếu
+    khoá hay sai kiểu thì báo lỗi rõ ràng thay vì để sập giữa đường.
+    """
+    if not isinstance(data, dict):
+        raise ImportError_("File không phải một đối tượng JSON.")
+    if data.get("version") != EXPORT_VERSION:
+        raise ImportError_(
+            f"File thuộc phiên bản {data.get('version')!r}, "
+            f"công cụ đang dùng phiên bản {EXPORT_VERSION}."
+        )
+    items = data.get("items")
+    if not isinstance(items, list):
+        raise ImportError_("Không tìm thấy danh sách 'items' trong file.")
+
+    target = profile or data.get("profile")
+    if not target:
+        raise ImportError_("File không ghi tên hồ sơ, và bạn cũng chưa chọn.")
+
+    # Các cột của bảng items, trừ id và profile — chỉ nhận đúng những cột này
+    # để file lạ không chèn được cột không mong muốn.
+    allowed = {
+        "name", "category", "price", "uses_per_month", "months", "wanted_days",
+        "source", "owns_similar", "used_price", "income", "fixed_costs",
+        "savings", "list_price", "sale_end", "target_price", "created_at",
+        "review_at", "status",
+    }
+
+    count = 0
+    with connect(path) as conn:
+        if replace:
+            conn.execute("DELETE FROM items WHERE profile = ?", (target,))
+            conn.execute("DELETE FROM settings WHERE profile = ?", (target,))
+
+        for raw in items:
+            if not isinstance(raw, dict) or not raw.get("name"):
+                continue                      # bỏ qua dòng rác, không làm sập
+            cols = {k: v for k, v in raw.items() if k in allowed}
+            # Điền các cột NOT NULL mà lược đồ không có giá trị mặc định.
+            # Thiếu chúng thì sqlite báo IntegrityError và cả lần nhập sập —
+            # lỗi này do test phát hiện.
+            cols.setdefault("price", 0)
+            cols.setdefault("uses_per_month", 1)
+            cols.setdefault("months", 12)
+            cols.setdefault("created_at", datetime.now().isoformat())
+            cols.setdefault("review_at", cols["created_at"])
+            cols["profile"] = target
+
+            names = ", ".join(cols)
+            marks = ", ".join("?" for _ in cols)
+            cur = conn.execute(
+                f"INSERT INTO items ({names}) VALUES ({marks})",
+                tuple(cols.values()),
+            )
+            item_id = cur.lastrowid
+            count += 1
+
+            for r in raw.get("ratings") or []:
+                if isinstance(r, dict) and r.get("rated_at"):
+                    conn.execute(
+                        "INSERT INTO ratings (item_id, rated_at, desire) "
+                        "VALUES (?,?,?)",
+                        (item_id, r["rated_at"], int(r.get("desire", 5))),
+                    )
+            for p in raw.get("price_log") or []:
+                if isinstance(p, dict) and p.get("checked_at"):
+                    conn.execute(
+                        "INSERT INTO price_log (item_id, checked_at, price) "
+                        "VALUES (?,?,?)",
+                        (item_id, p["checked_at"], float(p.get("price", 0))),
+                    )
+            for g in raw.get("goals") or []:
+                if isinstance(g, dict) and g.get("name"):
+                    conn.execute(
+                        "INSERT INTO goals (item_id, name, amount) VALUES (?,?,?)",
+                        (item_id, g["name"], float(g.get("amount", 0))),
+                    )
+            for o in raw.get("offers") or []:
+                if isinstance(o, dict) and (o.get("store") or o.get("url")):
+                    conn.execute(
+                        "INSERT INTO offers (item_id, store, url, price) "
+                        "VALUES (?,?,?,?)",
+                        (item_id, o.get("store", ""), o.get("url", ""),
+                         float(o.get("price", 0))),
+                    )
+
+        for key, value in (data.get("settings") or {}).items():
+            if isinstance(key, str) and isinstance(value, str):
+                conn.execute(
+                    """INSERT INTO settings (profile, key, value) VALUES (?,?,?)
+                       ON CONFLICT(profile, key) DO UPDATE
+                       SET value = excluded.value""",
+                    (target, key, value),
+                )
+
+    return count
+
+
 def all_rating_series(profile: Optional[str] = None,
                       path: Path = DEFAULT_PATH) -> List[List[Rating]]:
     """Chuỗi chấm điểm của tất cả các món, để ước tính thời gian bán rã."""

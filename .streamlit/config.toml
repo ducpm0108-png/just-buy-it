@@ -1,6 +1,56 @@
-# Ẩn thanh công cụ của nhà phát triển (nút Edit, biểu tượng GitHub, menu quản
-# lý app). Người xem chỉ còn thao tác với chính trang web.
-#
-# Các giá trị: "auto" (mặc định), "developer", "viewer", "minimal".
+# Cấu hình Streamlit. File này được commit, khác với .streamlit/secrets.toml
+# (chứa khoá bí mật) đã bị .gitignore chặn.
+
 [client]
+# Ẩn thanh công cụ của nhà phát triển: nút Edit, biểu tượng GitHub, menu quản
+# lý app. Người xem chỉ còn thao tác với chính trang web.
+# Các giá trị: "auto" (mặc định), "developer", "viewer", "minimal".
 toolbarMode = "minimal"
+
+
+# ---------------------------------------------------------------- giao diện
+#
+# Bảng màu lấy từ bản dựng thử HTML (docs/prototype.html), theo ẩn dụ tờ hoá
+# đơn đặt trên mặt bàn: vùng nội dung là giấy, thanh bên là mặt bàn, màu nhấn
+# là màu mực con dấu.
+#
+# Không đặt `base` để app theo đúng chế độ sáng/tối mà người dùng đang chọn;
+# mỗi chế độ có bảng màu riêng bên dưới.
+
+[theme]
+font = "sans-serif"
+codeFont = "monospace"          # hoá đơn dùng chữ đơn cách
+baseRadius = "small"            # giấy tờ thì góc không bầu
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#B3382C"                # mực con dấu, màu nhấn
+backgroundColor = "#FFFEFA"             # giấy hoá đơn
+secondaryBackgroundColor = "#F2F0E8"    # giấy hơi đậm hơn, cho ô nhập
+textColor = "#221F1A"                   # mực
+borderColor = "#D4CEC0"                 # đường kẻ mờ
+linkColor = "#2B4C7E"
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a"]
+
+[theme.light.sidebar]
+backgroundColor = "#DCE4DE"             # mặt bàn, xanh xám nhạt
+secondaryBackgroundColor = "#CFDAD3"
+textColor = "#1E3A33"
+borderColor = "#C3CEC7"
+primaryColor = "#B3382C"
+
+[theme.dark]
+primaryColor = "#E06A5C"
+backgroundColor = "#232019"             # giấy trong đêm
+secondaryBackgroundColor = "#2C2821"
+textColor = "#EDE7D9"
+borderColor = "#4A443A"
+linkColor = "#78A3DC"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70"]
+
+[theme.dark.sidebar]
+backgroundColor = "#0F1C19"             # mặt bàn tối
+secondaryBackgroundColor = "#1A2C27"
+textColor = "#F3EFE5"
+borderColor = "#2A3B36"
+primaryColor = "#E8C15C"
