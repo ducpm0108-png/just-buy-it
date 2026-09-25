@@ -156,6 +156,90 @@ def persist_weights(profile: str, w: Weights) -> None:
     }, path=DB_PATH)
 
 
+def running_on_cloud() -> bool:
+    """Đoán xem app đang chạy trên Streamlit Cloud hay trên máy người dùng.
+
+    Streamlit Cloud mount repo tại /mount/src. Đây là cách đoán chứ không
+    phải API chính thức, nên bọc try/except: đoán sai thì chỉ hiện sai một
+    dòng lưu ý, không làm app chết.
+    """
+    try:
+        return Path("/mount/src").exists()
+    except Exception:       # noqa: BLE001
+        return False
+
+
+ON_CLOUD = running_on_cloud()
+
+
+def intro_body() -> None:
+    """Nội dung bảng giới thiệu. Tách riêng để dùng lại ở cả hai cách hiển thị."""
+    st.markdown(
+        "Công cụ giúp bạn trả lời **“có nên mua món này không?”** bằng con số "
+        "thay vì cảm xúc. Bạn nhập giá, tình hình tiền bạc và lý do mình muốn "
+        "nó; công cụ in ra một hoá đơn cho biết món đồ *thật sự* tốn bao nhiêu, "
+        "rồi đóng dấu một trong bốn kết luận: **MUA ĐI**, **CHỜ ĐÃ**, "
+        "**LÊN KẾ HOẠCH** hoặc **ĐỪNG MUA**."
+    )
+
+    st.markdown("##### Dùng thế nào")
+    st.markdown(
+        "1. **Đánh giá** — điền thông tin món đồ. Các ô đã có sẵn một ví dụ, "
+        "cứ sửa đè lên. Hoá đơn bên phải cập nhật ngay khi bạn gõ.\n"
+        "2. **Chờ đã** — còn phân vân thì bấm “Đưa vào danh sách chờ”. Đến hạn, "
+        "quay lại chấm lại xem mình còn muốn nó không.\n"
+        "3. **Hồ sơ** — sau vài món, công cụ cho biết ham muốn của bạn nguội "
+        "nhanh cỡ nào, và tự đo xem bộ trọng số của bạn đoán đúng đến đâu.\n"
+        "4. **Cách tính điểm** — tuỳ chỉnh độ khắt khe, có hướng dẫn kèm theo."
+    )
+
+    st.markdown("##### Vài lưu ý")
+    notes = [
+        "Con số chỉ tốt bằng dữ liệu bạn nhập. Hãy ước tính số lần dùng một "
+        "cách thật lòng — đó là ô ảnh hưởng nhiều nhất.",
+        "Công cụ không tự đọc giá từ các sàn. Giá là do bạn ghi vào, và lịch "
+        "giảm giá theo danh mục chỉ là các mốc sale định kỳ, không phải dự báo.",
+        "Tên hồ sơ chỉ để tách dữ liệu, **không có xác thực** — ai cũng chọn "
+        "được hồ sơ của người khác.",
+        "Đây là công cụ để nhìn lại thói quen chi tiêu, **không phải lời "
+        "khuyên tài chính**.",
+    ]
+    st.markdown("\n".join(f"- {n}" for n in notes))
+
+    if ON_CLOUD:
+        st.warning(
+            "Bản online này **không giữ được dữ liệu**: mỗi lần app khởi động "
+            "lại là mất hết. Muốn xem thử ngay thì vào tab **Hồ sơ** bấm "
+            "**Nạp dữ liệu mẫu**.",
+            icon="⚠️",
+        )
+    else:
+        st.info(
+            f"Dữ liệu lưu tại `{DB_PATH}` trên máy này. Không gửi đi đâu, "
+            "không có tài khoản.",
+            icon="💾",
+        )
+
+
+INTRO_TITLE = "Chào bạn, đây là Just Buy It?"
+
+if hasattr(st, "dialog"):
+    @st.dialog(INTRO_TITLE, width="large")
+    def show_intro() -> None:
+        intro_body()
+        if st.button("Bắt đầu", type="primary"):
+            st.session_state.show_intro = False
+            st.rerun()
+else:
+    # Streamlit cũ không có st.dialog: hiện trong khối mở sẵn thay vì modal.
+    def show_intro() -> None:
+        with st.expander(INTRO_TITLE, expanded=True):
+            intro_body()
+            if st.button("Đã hiểu", type="primary"):
+                st.session_state.show_intro = False
+                st.rerun()
+
+
 # Trọng số nạp theo hồ sơ. Đổi hồ sơ thì nạp lại bộ của hồ sơ đó — đây là
 # phần cá nhân hoá quan trọng nhất: công sức hiệu chỉnh không được mất.
 if ("weights" not in st.session_state
@@ -194,32 +278,28 @@ with st.sidebar:
         ).strip() or db.DEFAULT_PROFILE
 
     profile = st.session_state.profile
-    st.caption(
-        "Tên hồ sơ chỉ dùng để tách dữ liệu, **không có xác thực** — "
-        "ai cũng chọn được hồ sơ của người khác. Triển khai thật cần đăng nhập."
-    )
+
+    with st.expander("Nhắc qua email"):
+        saved_email = db.get_setting(profile, "email", "", path=DB_PATH)
+        email = st.text_input("Địa chỉ nhận nhắc", value=saved_email,
+                              placeholder="ban@example.com")
+        if email != saved_email:
+            db.set_setting(profile, "email", email.strip(), path=DB_PATH)
+        st.caption("Đến hạn chấm lại, công cụ gửi nhắc về địa chỉ này.")
 
     st.divider()
-    st.subheader("Nhắc qua email")
-    saved_email = db.get_setting(profile, "email", "", path=DB_PATH)
-    email = st.text_input("Địa chỉ nhận nhắc", value=saved_email,
-                          placeholder="ban@example.com",
-                          label_visibility="collapsed")
-    if email != saved_email:
-        db.set_setting(profile, "email", email.strip(), path=DB_PATH)
-    st.caption(
-        "Dùng cho `scripts/send_reminders.py`. Script chạy thủ công; "
-        "tự động hằng ngày cần đưa database lên host."
-    )
-
-    st.divider()
-    st.caption(
-        f"Dữ liệu lưu tại `{DB_PATH}` trên máy đang chạy. "
-        "Không gửi đi đâu, không có tài khoản."
-    )
+    if st.button("Giới thiệu và lưu ý", use_container_width=True):
+        st.session_state.show_intro = True
+        st.rerun()
 
 
 # ----------------------------------------------------------------- các tab
+
+# Lần đầu mở trong một phiên thì hiện bảng giới thiệu. Đặt cờ ngay lúc hiện,
+# không phải lúc bấm nút, để đóng bằng dấu X cũng không làm nó hiện lại.
+if st.session_state.get("show_intro", True):
+    st.session_state.show_intro = False
+    show_intro()
 
 tab_eval, tab_wait, tab_profile, tab_weights = st.tabs(
     ["Đánh giá", "Chờ đã", "Hồ sơ", "Cách tính điểm"]

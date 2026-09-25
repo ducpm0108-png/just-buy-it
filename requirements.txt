@@ -1,6 +1,9 @@
-# Giao diện. Phần tính toán trong src/ chỉ dùng thư viện chuẩn của Python,
-# nên chạy test không cần cài gì ngoài pytest.
+# Giao diện. app.py import trực tiếp pandas và altair nên khai rõ ở đây,
+# dù cả hai vốn đã đi kèm streamlit.
 streamlit>=1.30
+pandas>=1.4
+altair>=5.0
 
-# Kiểm thử
+# Kiểm thử. Phần tính toán trong src/ chỉ dùng thư viện chuẩn của Python,
+# nên chạy test không cần cài streamlit.
 pytest>=7.0
