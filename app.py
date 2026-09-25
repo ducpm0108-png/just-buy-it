@@ -175,9 +175,10 @@ def price_chart(price_log: list, target: float) -> alt.LayerChart:
 db.init_db(DB_PATH)
 
 
-# Lớp trang trí. Không truyền chế độ sáng/tối vào: CSS tự chọn bằng
-# prefers-color-scheme, nên không có khoảng lệch giữa lúc Python đoán chế độ
-# và lúc trình duyệt vẽ — đúng chỗ bản trước làm chữ biến mất.
+# Lớp trang trí. Không truyền chế độ sáng/tối vào, và bản thân CSS cũng
+# không đi hỏi chế độ: mọi màu bề mặt suy ra từ màu chữ mà Streamlit đã đặt.
+# Hai lần giao diện vỡ đều vì đoán chế độ — một lần đoán bằng Python, một
+# lần đoán bằng prefers-color-scheme. Xem src/style.py, nguyên tắc 4.
 st.html(style.css())
 
 if "profile" not in st.session_state:
@@ -686,15 +687,20 @@ with tab_eval:
 
             # Con dấu
             st.markdown(receipt_rule(), unsafe_allow_html=True)
-            stamp_color = {"buy": "#2E6B4F", "wait": "#2B4C7E",
-                           "plan": "#A2701B", "no": "#B3382C"}[verdict.key]
+            # Màu lấy từ style.STAMP_COLORS vì nó đã kiểm trên cả hai mặt
+            # giấy; bộ màu đặt tại chỗ trước đây chỉ đúng trên nền sáng.
+            # Dòng phụ cố tình KHÔNG đặt màu: chữ 10px không thuộc diện chữ
+            # lớn nên phải giữ nguyên màu mực, mới đủ tương phản.
+            stamp_color = style.STAMP_COLORS[verdict.key]
             st.markdown(
                 f'<div style="text-align:center;margin:8px 0">'
                 f'<span style="display:inline-block;border:3px double {stamp_color};'
-                f'color:{stamp_color};border-radius:5px;padding:8px 18px;'
+                f'border-radius:5px;padding:8px 18px;'
                 f'transform:rotate(-6deg);font-family:monospace">'
-                f'<b style="font-size:18px;letter-spacing:.14em">{verdict.title}</b><br>'
-                f'<span style="font-size:10px;letter-spacing:.1em">{verdict.subtitle}</span>'
+                f'<b style="font-size:19px;letter-spacing:.14em;'
+                f'color:{stamp_color}">{verdict.title}</b><br>'
+                f'<span style="font-size:10px;letter-spacing:.1em;opacity:.75">'
+                f"{verdict.subtitle}</span>"
                 f"</span></div>",
                 unsafe_allow_html=True,
             )

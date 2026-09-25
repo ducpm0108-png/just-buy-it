@@ -252,6 +252,50 @@ tối nên không cần đổi theo chế độ.
 biểu tượng GitHub) để người xem chỉ thao tác với chính trang web. Quản lý
 app vẫn làm ở share.streamlit.io.
 
+### Vì sao lớp trang trí không gọi tên màu nào
+
+Chỗ này vỡ hai lần trên bản deploy, và hai lần đều cùng một nguyên nhân:
+**đoán xem Streamlit đang vẽ chế độ nào.**
+
+| Lần | Cách đoán | Kết quả |
+|---|---|---|
+| 1 | `st.context.theme.type` trong Python | Trả về `"light"` khi Streamlit vẽ tối → nền sáng chồng dưới chữ kem, **chữ biến mất** |
+| 2 | `prefers-color-scheme` trong CSS | Đọc thiết lập của máy, không phải của Streamlit → máy tối mà Streamlit vẽ sáng thì **hoá đơn hoá đen giữa trang giấy trắng** |
+
+Tài liệu Streamlit có nói `st.context.theme.type` là giá trị *suy ra từ màu
+nền* và "có thể sai trong lúc đổi giao diện" — lần một là lỗi đọc mà vẫn
+dùng. Lần hai đổi nguồn đoán chứ không bỏ việc đoán, nên lỗi quay lại theo
+chiều ngược.
+
+Cách sửa thật là bỏ câu hỏi. Mọi màu **bề mặt** trong `src/style.py` suy ra
+từ `currentColor` — màu chữ mà chính Streamlit đã đặt — bằng `color-mix`:
+
+```css
+--jbi-sheet: color-mix(in srgb, currentColor 5%, transparent);
+```
+
+Biến CSS chưa đăng ký được thay thế dạng *văn bản* rồi mới tính giá trị tại
+phần tử dùng nó, nên `currentColor` ở đây tính đúng ở tờ hoá đơn. Chế độ
+sáng cho bề mặt sẫm hơn nền, chế độ tối cho bề mặt sáng hơn nền, và không
+có nguồn sự thật thứ hai để mà lệch.
+
+Kiểm chứng bằng `grep`: `src/style.py` không còn một mã màu hex nào và
+không còn media query chế độ nào; hai test chặn việc thêm lại. Đo trong
+trình duyệt thật ở cả bốn tổ hợp (Streamlit sáng/tối × máy sáng/tối), tương
+phản chữ trên giấy là 11,6–14,8:1.
+
+Hai chỗ **vẫn** gọi tên màu, có lý do:
+
+- `.streamlit/config.toml` — ở đó mỗi chế độ có mục riêng và **Streamlit tự
+  chọn** đúng mục, nên không ai phải đoán. Màu trắng của ô nhập đặt ở đây.
+- `style.STAMP_COLORS` — bốn màu con dấu **mang nghĩa** (xanh là mua, đỏ là
+  đừng) nên phải là màu thật. Đánh đổi là chúng phải đạt tương phản trên cả
+  hai mặt giấy, và 4,5:1 cả hai là bất khả (muốn đạt trên giấy sáng thì độ
+  sáng màu phải ≤ 0,160, trên giấy tối thì ≥ 0,280 — hai khoảng rời nhau).
+  Nên đích là 3:1 cho chữ lớn in đậm; bốn màu hiện tại đạt 3,4–3,8:1 và
+  `test_mau_con_dau_doc_duoc_tren_ca_hai_mat_giay` tính lại từ bảng màu
+  trong config.toml mỗi lần chạy.
+
 ## Giới hạn đã biết
 
 - **Webapp không tự đọc giá từ các sàn.** Giá là do người dùng tự ghi.

@@ -4,39 +4,82 @@ Vì sao cần file này: `.streamlit/config.toml` đổi được **màu**, như
 đổi được **hình khối và kiểu chữ**. Để nguyên thì app trông như mọi app
 Streamlit khác: cùng nút +/− trên ô số, cùng nhãn, cùng cỡ chữ.
 
-Hai nguyên tắc, cả hai đều rút ra từ lỗi đã gặp:
+Bốn nguyên tắc, cả bốn đều rút ra từ lỗi đã thật sự gặp trên bản deploy:
 
 1. **Không bao giờ đặt màu chữ.** Chỉ dùng `opacity` để làm nhạt. Chữ luôn
-   thừa hưởng màu từ giao diện Streamlit, nên dù màu nền có lệch thì chữ
-   vẫn đọc được. Bản trước đặt cả nền lẫn màu chữ theo chế độ đọc từ Python;
-   khi Python đọc sai chế độ thì nền sáng chồng dưới chữ kem — chữ biến mất.
+   thừa hưởng màu từ giao diện Streamlit, nên dù nền có lệch thì chữ vẫn
+   đọc được.
 
-2. **Không hỏi Python đang ở chế độ nào.** Vì `toolbarMode = "minimal"` đã
-   ẩn menu đổi giao diện, chế độ sáng/tối chỉ còn phụ thuộc thiết lập hệ
-   điều hành — thứ mà CSS đọc trực tiếp được bằng `prefers-color-scheme`.
-   Không còn khoảng lệch giữa lúc Python đoán và lúc trình duyệt vẽ.
+2. **Không hỏi Python đang ở chế độ nào.** `st.context.theme.type` trả về
+   giá trị suy đoán từ màu nền, và nó đã trả về "light" trong khi Streamlit
+   vẽ chế độ tối. CSS chồng nền sáng dưới chữ kem — chữ biến mất.
 
-Nguyên tắc thứ ba, về chọn selector: **chỉ bám vào `data-testid` và
+3. **Không hỏi hệ điều hành đang ở chế độ nào.** Đây là lỗi lần hai, ngược
+   chiều lỗi lần một. `prefers-color-scheme` đọc thiết lập của máy, còn
+   Streamlit vẽ theo thiết lập riêng của nó; hai thứ đó lệch nhau được. Máy
+   đặt chế độ tối mà Streamlit vẫn vẽ sáng thì tờ hoá đơn hoá đen giữa
+   trang giấy trắng.
+
+4. **Không gọi tên màu nào phải khớp với một chế độ.** Đây là kết luận
+   chung của hai lỗi trên: mọi cách biết chế độ đều đoán được, nên đừng
+   biết. Mọi màu bề mặt ở đây suy ra từ `currentColor` — màu chữ mà chính
+   Streamlit đã đặt — nên chúng tự đúng theo đúng cái Streamlit vẽ, không
+   phải theo cái ta tưởng nó vẽ.
+
+   Cơ chế làm việc đó chạy được: biến CSS chưa đăng ký được thay thế
+   dạng **văn bản** rồi mới tính giá trị tại chính phần tử dùng nó. Nên
+   `currentColor` trong `--jbi-sheet` không tính ở `:root` mà tính ở tờ hoá
+   đơn, nơi màu chữ đã là màu chữ thật của giao diện.
+
+   Kiểm chứng được bằng `grep`: file này không còn một mã màu hex nào, và
+   `test_khong_con_ma_mau_tuyet_doi` chặn việc thêm lại.
+
+Nguyên tắc thứ năm, về chọn selector: **chỉ bám vào `data-testid` và
 `st-key-*`**. Tên class kiểu `st-emotion-cache-1a2b3c` do Streamlit sinh ra
 và đổi mỗi phiên bản — bám vào đó là giao diện vỡ ở lần cập nhật kế tiếp.
+
+Ngoại lệ duy nhất của nguyên tắc 1 là `STAMP_COLORS` bên dưới: màu ở đó
+**mang nghĩa** (xanh là mua, đỏ là đừng) chứ không mang bề mặt, nên phải gọi
+tên thật. Đánh đổi là nó buộc phải kiểm tra trên cả hai mặt giấy, và
+`test_mau_con_dau_doc_duoc_tren_ca_hai_mat_giay` làm việc đó.
 """
 
 from typing import Dict
 
-# Chỉ còn những màu **bề mặt** cần biết trước. Màu chữ không nằm ở đây, và
-# đó là chủ ý: chữ luôn lấy từ giao diện Streamlit.
-SURFACES: Dict[str, Dict[str, str]] = {
-    "light": {
-        # Tờ hoá đơn cùng màu nền trang; bóng đổ là thứ tách nó ra.
-        "sheet": "#FFFEFA",
-        "shadow": "0 10px 28px rgba(30, 58, 51, .13)",
-    },
-    "dark": {
-        # Trong đêm bóng đổ không thấy, nên tờ giấy phải sáng hơn nền một
-        # chút mới đọc ra là một tờ riêng.
-        "sheet": "#2B2720",
-        "shadow": "0 10px 30px rgba(0, 0, 0, .35)",
-    },
+# Độ pha của các bề mặt, tính theo phần trăm màu chữ trộn vào nền. Đây là
+# thứ thay cho bảng mã màu cũ: một con số thay vì hai mã màu, và không cần
+# biết chế độ nào.
+#
+# Vì sao 5%: pha 5% màu chữ vào nền cho ra gần đúng hai màu giấy đã chọn tay
+# trước đây (#F4F3EF ở chế độ sáng, #2D2A23 ở chế độ tối) — bằng chứng rằng
+# cách tính tương đối không làm mất thiết kế, chỉ bỏ phần đoán chế độ.
+MIX: Dict[str, int] = {
+    "sheet": 5,      # tờ hoá đơn, nhạt hơn nền một bậc
+    "rule": 22,      # đường kẻ ngang trong hoá đơn
+    "hairline": 14,  # đường kẻ mảnh hơn, dưới thẻ tab
+}
+
+# Màu con dấu kết luận — bốn màu MANG NGHĨA, nên đây là chỗ duy nhất trong
+# lớp trang trí được gọi tên màu thật.
+#
+# Ràng buộc: cùng một màu phải đọc được trên tờ giấy sáng (#F4F3EF) và tờ
+# giấy tối (#2D2A23). Đặt bài toán ra thì thấy 4,5:1 trên cả hai mặt là
+# KHÔNG thể: muốn đạt 4,5:1 trên giấy sáng thì độ sáng màu phải ≤ 0,160,
+# muốn đạt trên giấy tối thì phải ≥ 0,280 — hai khoảng không giao nhau. Nên
+# đích là 3:1, mức WCAG cho chữ lớn in đậm, và chữ tiêu đề trong con dấu
+# được đặt 19px đậm để thật sự thuộc diện "chữ lớn".
+#
+# Bốn màu dưới đây đạt 3,4–3,8:1 trên cả hai mặt. Bộ màu cũ (#2E6B4F,
+# #2B4C7E, #A2701B, #B3382C) chọn theo mắt trên nền sáng, và ba trong bốn
+# chỉ đạt 1,7–2,4:1 trên giấy tối.
+#
+# Màu không phải tín hiệu duy nhất: chữ "MUA ĐI" hay "ĐỪNG MUA" đã nói rõ
+# kết luận, nên người không phân biệt được màu vẫn đọc được kết quả.
+STAMP_COLORS: Dict[str, str] = {
+    "buy": "#3D8F69",    # cùng màu với vạch "dưới ngưỡng" của thanh điểm
+    "wait": "#4E80C8",
+    "plan": "#A87C22",
+    "no": "#D2554A",     # cùng màu với vạch "vượt ngưỡng"
 }
 
 # Be Vietnam Pro là bộ chữ thiết kế cho tiếng Việt nên dấu đặt đúng chỗ,
@@ -56,38 +99,45 @@ MONO_FONT = (
 )
 
 
+def _mix(key: str) -> str:
+    """Một bề mặt, tính theo màu chữ hiện hành.
+
+    Giá trị dự phòng là màu xám trung tính rất nhạt, đặt trước dòng
+    `color-mix` để trình duyệt cũ vẫn có cái dùng. Xám trung tính chịu được
+    cả hai chế độ: nó sáng hơn nền tối và tối hơn nền sáng, nên dù rơi về
+    dự phòng thì bề mặt vẫn tách khỏi nền, chỉ là nhạt hơn ý muốn.
+    """
+    pct = MIX[key]
+    return (
+        f"rgba(128, 122, 110, {pct / 100:.2f});\n"
+        f"  --jbi-{key}: color-mix(in srgb, currentColor {pct}%, transparent)"
+    )
+
+
 def css() -> str:
     """Trả về toàn bộ CSS trang trí.
 
-    Không nhận tham số chế độ: cả hai chế độ nằm trong cùng một chuỗi, và
-    `prefers-color-scheme` chọn giúp.
+    Không nhận tham số chế độ, và không chứa media query chế độ nào: chuỗi
+    này giống nhau ở mọi chế độ, còn việc khớp màu do `currentColor` lo.
     """
-    light, dark = SURFACES["light"], SURFACES["dark"]
-
     return f"""
 <style>
 @import url('{FONT_URL}');
 
-/* ============================================================ BIẾN MÀU
+/* ============================================================ BỀ MẶT
 
-   Chỉ khai báo màu **bề mặt**. Đường kẻ và viền suy ra từ `currentColor`
-   nên tự đúng ở cả hai chế độ mà không cần khai báo hai lần. */
+   Không có mã màu nào ở đây, và đó là chủ ý — xem nguyên tắc 4 trong
+   docstring của src/style.py. Mỗi biến pha một ít màu chữ vào nền, nên
+   chế độ sáng cho bề mặt sẫm hơn nền, chế độ tối cho bề mặt sáng hơn nền,
+   mà CSS không cần biết mình đang ở chế độ nào. */
 
 :root {{
-  --jbi-sheet: {light['sheet']};
-  --jbi-shadow: {light['shadow']};
-  /* Khai báo rgba trước làm dự phòng cho trình duyệt chưa có color-mix. */
-  --jbi-rule: rgba(128, 122, 110, .38);
-  --jbi-rule: color-mix(in srgb, currentColor 22%, transparent);
-  --jbi-hairline: rgba(128, 122, 110, .22);
-  --jbi-hairline: color-mix(in srgb, currentColor 14%, transparent);
-}}
-
-@media (prefers-color-scheme: dark) {{
-  :root {{
-    --jbi-sheet: {dark['sheet']};
-    --jbi-shadow: {dark['shadow']};
-  }}
+  --jbi-sheet: {_mix('sheet')};
+  --jbi-rule: {_mix('rule')};
+  --jbi-hairline: {_mix('hairline')};
+  /* Bóng đổ dùng một giá trị cho cả hai chế độ: ở chế độ tối nó gần như
+     không thấy, nhưng lúc đó tờ giấy đã sáng hơn nền nên vẫn nổi. */
+  --jbi-shadow: 0 10px 28px rgba(0, 0, 0, .16);
 }}
 
 /* ============================================================ CHỮ
@@ -129,8 +179,10 @@ html, body,
    Bỏ hai nút +/− của ô số. Với tám ô số trên một trang, chúng là thứ làm
    giao diện trông "mặc định" nhất, mà gõ số vẫn nhanh hơn bấm nút.
 
-   Cố tình KHÔNG đặt màu nền hay màu chữ cho ô nhập: để Streamlit tự tô
-   theo chế độ của nó. Đây chính là chỗ bản trước làm sai. */
+   Cố tình KHÔNG đặt nền cho ô nhập: màu nền ô nhập nằm ở config.toml,
+   trong `secondaryBackgroundColor` của từng chế độ, nơi Streamlit tự chọn
+   đúng cái. Đó là chỗ duy nhất trong dự án được phép gọi tên màu theo chế
+   độ, vì ở đó không ai phải đoán. */
 
 [data-testid="stNumberInputStepUp"],
 [data-testid="stNumberInputStepDown"] {{
@@ -178,7 +230,11 @@ html, body,
 
    Khối này được đánh dấu bằng key="receipt" trong app.py. Hai mép răng cưa
    trên dưới là chi tiết nhận dạng của cả sản phẩm — nó nói "đây là tờ hoá
-   đơn" mà không cần một dòng chữ nào. */
+   đơn" mà không cần một dòng chữ nào.
+
+   Mép răng cưa nằm ngoài khung nên nền của nó chồng lên nền trang, và vì
+   `--jbi-sheet` trong suốt một phần, chỗ đó tự pha ra đúng màu tờ giấy —
+   không cần biết nền trang màu gì. */
 
 .st-key-receipt {{
   position: relative;
