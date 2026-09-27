@@ -265,16 +265,110 @@ def intro_body() -> None:
             "là mất hết. Hai việc nên biết:\n\n"
             "- Muốn xem thử ngay: tab **Hồ sơ** → **Nạp dữ liệu mẫu**\n"
             "- Muốn giữ dữ liệu mình nhập: tab **Hồ sơ** → **Tải dữ liệu về**, "
-            "lần sau quay lại thì nạp file đó lên",
+            "lần sau quay lại thì nạp file đó lên\n\n"
+            "Hướng dẫn chi tiết nằm ở nút **“?”** cạnh mục *Dữ liệu của bạn*.",
             icon="⚠️",
         )
     else:
         st.info(
             f"Dữ liệu lưu tại `{DB_PATH}` trên máy này, không gửi đi đâu. "
             "Muốn sao lưu hoặc mang sang máy khác thì dùng **Tải dữ liệu về** "
-            "ở tab Hồ sơ.",
+            "ở tab Hồ sơ — hướng dẫn chi tiết ở nút **“?”** cạnh mục đó.",
             icon="💾",
         )
+
+
+DATA_HELP_TITLE = "Nhập và xuất dữ liệu"
+
+
+def data_help_body() -> None:
+    """Hướng dẫn nhập/xuất. Tách riêng vì dùng lại ở ba chỗ: thẻ hiện lần
+    đầu vào tab Hồ sơ, hộp thoại của nút “?”, và bản dự phòng cho Streamlit
+    cũ không có st.dialog.
+
+    Nội dung bám sát hành vi thật của `db.import_profile`, kể cả hai điểm
+    không hiển nhiên: dữ liệu vào hồ sơ đang chọn chứ không phải hồ sơ ghi
+    trong file, và bộ trọng số trong file ghi đè bộ đang dùng ở cả hai cách
+    nạp. Người dùng không đọc mã nguồn nên chỗ nào bất ngờ thì phải nói ra.
+    """
+    if ON_CLOUD:
+        st.markdown(
+            "Bản online **không giữ được dữ liệu**: mỗi lần app khởi động lại "
+            "là mất hết. File JSON là cách duy nhất để giữ những món bạn đã "
+            "nhập, nên phần này đáng đọc một lượt."
+        )
+    else:
+        st.markdown(
+            f"Dữ liệu nằm trong `{DB_PATH}` trên máy này. Xuất ra file JSON "
+            "là cách sao lưu, và cũng là cách mang dữ liệu sang máy khác."
+        )
+
+    st.markdown("##### 1. Tải dữ liệu về")
+    st.markdown(
+        "Bấm **Tải dữ liệu về**, trình duyệt lưu một file tên "
+        "`just-buy-it-<hồ sơ>-<ngày>.json`.\n\n"
+        "Trong file có mọi món của **riêng hồ sơ đang chọn** — kèm các lần "
+        "chấm lại ham muốn, lịch sử giá, mục tiêu tiết kiệm và nơi bán — cộng "
+        "với bộ trọng số và địa chỉ email của hồ sơ đó. Hồ sơ của người khác "
+        "không nằm trong file.\n\n"
+        "Nút mờ đi khi hồ sơ chưa có món nào."
+    )
+
+    st.markdown("##### 2. Nạp dữ liệu từ file")
+    st.markdown(
+        "Chọn file rồi chọn một trong hai cách:\n\n"
+        "- **Thêm vào dữ liệu hiện có** — giữ nguyên những món đang có và "
+        "thêm món trong file vào. Nạp cùng một file hai lần thì các món bị "
+        "nhân đôi.\n"
+        "- **Thay thế toàn bộ** — xoá sạch dữ liệu của hồ sơ đang chọn rồi "
+        "mới nạp. Đây là cách dùng khi quay lại bản online và muốn khôi phục "
+        "đúng trạng thái lần trước."
+    )
+    st.info(
+        "Hai điều dễ bất ngờ:\n\n"
+        "- Dữ liệu luôn vào **hồ sơ đang chọn ở thanh bên**, không phải tên "
+        "hồ sơ ghi trong file. Muốn xem dữ liệu của người khác mà không trộn "
+        "vào của mình thì tạo hồ sơ mới trước, rồi mới nạp.\n"
+        "- **Cả hai cách đều ghi đè** bộ trọng số và địa chỉ email của hồ sơ "
+        "đang chọn bằng của file. Nếu bạn vừa hiệu chỉnh trọng số thì tải "
+        "file mới về trước khi nạp file cũ lên.",
+        icon="ℹ️",
+    )
+
+    if ON_CLOUD:
+        st.markdown("##### 3. Thói quen nên có với bản online")
+        st.markdown(
+            "1. Nhập xong một phiên → **Tải dữ liệu về**.\n"
+            "2. Lần sau mở lại → chọn đúng tên hồ sơ ở thanh bên → nạp file "
+            "đó lên, chọn **Thay thế toàn bộ**.\n"
+            "3. Làm tiếp, rồi lại tải về trước khi đóng."
+        )
+
+    st.markdown("##### Lưu ý")
+    st.markdown(
+        "- File có thu nhập, chi phí cố định và số tiền bạn đang có. **Đừng "
+        "gửi cho người khác và đừng đẩy lên GitHub.**\n"
+        "- Tên hồ sơ chỉ để tách dữ liệu, không phải đăng nhập — ai mở link "
+        "cũng chọn được hồ sơ của bạn. Trên bản online nên nhập số ước lượng.\n"
+        "- File có ghi số phiên bản. Nếu sau này công cụ đổi cấu trúc dữ "
+        "liệu, file cũ sẽ báo lỗi rõ ràng chứ không nạp sai âm thầm."
+    )
+
+
+if hasattr(st, "dialog"):
+    @st.dialog(DATA_HELP_TITLE, width="large")
+    def show_data_help() -> None:
+        data_help_body()
+        if st.button("Đóng", type="primary"):
+            st.session_state.show_data_help = False
+            st.rerun()
+else:
+    def show_data_help() -> None:
+        with st.expander(DATA_HELP_TITLE, expanded=True):
+            data_help_body()
+            if st.button("Đóng", type="primary"):
+                st.session_state.show_data_help = False
+                st.rerun()
 
 
 INTRO_TITLE = "Chào bạn, đây là Just Buy It?"
@@ -356,6 +450,13 @@ with st.sidebar:
 if st.session_state.get("show_intro", True):
     st.session_state.show_intro = False
     show_intro()
+
+# Hộp thoại hướng dẫn nhập/xuất, mở bằng nút “?” ở tab Hồ sơ. Gọi ở cấp
+# ngoài cùng chứ không gọi trong `with tab_profile:` để hộp thoại không nằm
+# lồng trong khối tab.
+if st.session_state.get("show_data_help"):
+    st.session_state.show_data_help = False
+    show_data_help()
 
 tab_eval, tab_wait, tab_profile, tab_weights = st.tabs(
     ["Đánh giá", "Chờ đã", "Hồ sơ", "Cách tính điểm"]
@@ -974,13 +1075,42 @@ with tab_profile:
 
     # ---------------------------------------- xuất / nhập dữ liệu
     st.divider()
-    st.markdown("#### Dữ liệu của bạn")
+
+    tieu_de, nut_hoi = st.columns([0.92, 0.08])
+    with tieu_de:
+        st.markdown("#### Dữ liệu của bạn")
+    with nut_hoi:
+        if st.button("?", key="mo_huong_dan_du_lieu",
+                     help="Hướng dẫn nhập/xuất dữ liệu",
+                     use_container_width=True):
+            st.session_state.show_data_help = True
+            st.rerun()
+
     st.caption(
         "Bản online không giữ được dữ liệu qua mỗi lần app khởi động lại. "
         "Tải file về là cách giữ, và cũng là cách mang dữ liệu sang máy khác."
         if ON_CLOUD else
         "Tải file về để sao lưu, hoặc mang dữ liệu sang máy khác."
     )
+
+    # Lần đầu hồ sơ này vào tới đây thì bày sẵn cả hướng dẫn, không bắt đi
+    # tìm nút “?”. Cờ lưu trong bảng settings theo từng hồ sơ nên tải lại
+    # trang vẫn nhớ, giống cách bảng giới thiệu nhớ đã xem hay chưa.
+    #
+    # Vì sao là thẻ tại chỗ chứ không phải hộp thoại: Streamlit chạy thân
+    # của MỌI tab ở mỗi lần vẽ lại, nên phía Python không có cách nào biết
+    # người dùng vừa bấm sang tab Hồ sơ. Hộp thoại đặt trong tab này sẽ bật
+    # ngay lúc mới mở trang, trong khi người dùng đang nhìn tab Đánh giá.
+    da_xem = db.get_setting(profile, "data_help_seen", "", path=DB_PATH)
+    if not da_xem:
+        with st.container(border=True):
+            st.markdown(f"##### {DATA_HELP_TITLE}")
+            st.caption("Hiện một lần cho mỗi hồ sơ. Mở lại bằng nút “?” ở trên.")
+            data_help_body()
+            if st.button("Đã hiểu", type="primary",
+                         key="da_doc_huong_dan_du_lieu"):
+                db.set_setting(profile, "data_help_seen", "1", path=DB_PATH)
+                st.rerun()
 
     c1, c2 = st.columns(2)
 

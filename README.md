@@ -252,6 +252,29 @@ tối nên không cần đổi theo chế độ.
 biểu tượng GitHub) để người xem chỉ thao tác với chính trang web. Quản lý
 app vẫn làm ở share.streamlit.io.
 
+### Hướng dẫn nhập/xuất dữ liệu
+
+Mục *Dữ liệu của bạn* ở tab Hồ sơ có một thẻ hướng dẫn hiện **một lần cho
+mỗi hồ sơ**, và một nút **“?”** mở lại bất cứ lúc nào dưới dạng hộp thoại.
+Nội dung nằm trong một hàm `data_help_body()` dùng chung cho cả ba chỗ hiện
+(thẻ lần đầu, hộp thoại, bản dự phòng cho Streamlit cũ), nên không có hai
+bản hướng dẫn lệch nhau.
+
+Cờ “đã xem” lưu trong bảng `settings` theo từng hồ sơ nên tải lại trang vẫn
+nhớ — khác với `st.session_state` vốn mất khi refresh.
+
+Thẻ là **tại chỗ chứ không phải hộp thoại tự bật**, vì Streamlit chạy thân
+của *mọi* tab ở mỗi lần vẽ lại: phía Python không có cách nào biết người
+dùng vừa bấm sang tab Hồ sơ. Hộp thoại đặt trong tab đó sẽ bật ngay lúc mới
+mở trang, trong khi người dùng đang nhìn tab Đánh giá.
+
+Hướng dẫn nói ra hai hành vi không hiển nhiên của `db.import_profile`, và
+`tests/test_huong_dan_du_lieu.py` rà để hướng dẫn không nói lệch với mã:
+
+- Dữ liệu vào **hồ sơ đang chọn ở thanh bên**, không phải hồ sơ ghi trong file.
+- **Cả hai cách nạp đều ghi đè** bộ trọng số và email của hồ sơ đang chọn,
+  vì vòng lặp ghi `settings` nằm ngoài nhánh `replace`.
+
 ### Vì sao lớp trang trí không gọi tên màu nào
 
 Chỗ này vỡ hai lần trên bản deploy, và hai lần đều cùng một nguyên nhân:
