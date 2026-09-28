@@ -288,3 +288,23 @@ def test_goi_y_khong_bi_hong_dau_cau():
         assert msg.rstrip().endswith((".", "%", ")")), f"câu lỗi: {msg!r}"
         assert ". hoặc" not in msg
         assert "5 điểm." not in msg
+
+
+def test_goi_y_khong_nhac_lai_do_chinh_xac():
+    """Cả hai giao diện đều hiện "đoán đúng N/M (x%)" ngay phía trên danh
+    sách gợi ý. Thêm câu đó vào gợi ý là người dùng đọc cùng một con số hai
+    lần liền nhau — lỗi đã từng có ở cả bản Streamlit và bản web."""
+    outs = [outcome(True, True)] * 4 + [outcome(True, False, price=3_000_000)]
+    cal = pz.calibrate(outs)
+    msgs = pz.suggestions(cal, [])
+    assert msgs, "vẫn phải có gợi ý về việc nên làm"
+    for m in msgs:
+        assert "đoán đúng" not in m, m
+        assert f"{cal.n_right}/{cal.n}" not in m, m
+
+
+def test_goi_y_it_du_lieu_van_noi_ro_con_thieu_bao_nhieu():
+    """Nhánh ít dữ liệu vẫn cần con số, vì nó là lời hướng dẫn chứ không
+    phải nhắc lại thống kê."""
+    msgs = pz.suggestions(pz.calibrate([outcome(True, True)] * 3), [])
+    assert len(msgs) == 1 and "5 món" in msgs[0]

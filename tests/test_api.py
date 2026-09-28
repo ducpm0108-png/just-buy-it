@@ -323,3 +323,160 @@ def test_khong_tinh_duoc_thi_khong_co_cach_nao_re_nhat():
         "item": {"price": 1_000_000, "uses_per_month": 0},
         "alternatives": {"used": 500_000}}).json()
     assert all(a["best"] is False for a in r["alternatives"])
+
+
+# ------------------------------------------------- báo cáo hiệu chỉnh
+
+TIEN = {"income": 8_000_000, "fixed_costs": 5_000_000, "savings": 12_000_000}
+
+
+def ctx(uses=10, months=24, wanted=30, source="need", **kw):
+    d = dict(uses_per_month=uses, months=months, wanted_days=wanted,
+             source=source, owns_similar=False, used_price=None, **TIEN)
+    d.update(kw)
+    return d
+
+
+def mon(i, name, price, status, v_dau, v_cuoi, hoan_canh=None, cat="tech"):
+    """Một món đã có kết luận, chấm hai lần cách nhau 7 ngày."""
+    row = {"id": f"m{i}", "name": name, "price": price, "status": status,
+           "cat": cat, "created": "2026-08-01T10:00:00",
+           "ratings": [{"t": "2026-08-01T10:00:00", "v": v_dau},
+                       {"t": "2026-08-08T10:00:00", "v": v_cuoi}]}
+    if hoan_canh is not None:
+        row["context"] = hoan_canh
+    return row
+
+
+def cal_cua(items, weights=None):
+    body = {"items": items}
+    if weights:
+        body["weights"] = weights
+    return client.post("/api/profile", json=body).json()["calibration"]
+
+
+def test_mon_thieu_hoan_canh_bi_bo_qua_va_duoc_dem():
+    """Bỏ qua chứ không đoán bù. Chạy lại mô hình bằng số liệu bịa ra còn
+    tệ hơn không chạy lại, vì kết quả trông như thật."""
+    c = cal_cua([
+        mon(0, "Có hoàn cảnh", 1_000_000, "bought", 9, 2, ctx()),
+        mon(1, "Thiếu hoàn cảnh", 2_000_000, "bought", 9, 2, None),
+    ])
+    assert c["n"] == 1
+    assert c["missing_context"] == 1
+
+
+def test_duoi_5_quyet_dinh_thi_khong_du_du_lieu():
+    c = cal_cua([mon(i, f"Món {i}", 1_000_000, "bought", 9, 2, ctx())
+                 for i in range(4)])
+    assert c["n"] == 4
+    assert c["enough_data"] is False
+
+
+def test_du_5_quyet_dinh_thi_du_du_lieu():
+    c = cal_cua([mon(i, f"Món {i}", 1_000_000, "bought", 9, 2, ctx())
+                 for i in range(5)])
+    assert c["enough_data"] is True
+
+
+def test_mon_dang_cho_khong_tinh_vao():
+    c = cal_cua([mon(0, "Đang chờ", 1_000_000, "waiting", 9, 3, ctx())])
+    assert c["n"] == 0
+    assert c["missing_context"] == 0
+
+
+def test_cham_5_tren_10_khong_tinh_vao():
+    """5/10 là ở giữa: không rõ còn muốn hay hết muốn."""
+    c = cal_cua([mon(0, "Lưng chừng", 1_000_000, "bought", 9, 5, ctx())])
+    assert c["n"] == 0
+
+
+def test_ham_muon_dau_vao_la_lan_cham_DAU_chu_khong_phai_lan_cuoi():
+    """Lần chấm cuối chính là kết quả cần đoán. Dùng nó làm đầu vào thì mô
+    hình tự biết đáp án, và mọi tỷ lệ đúng đều thành vô nghĩa.
+
+    Cách kiểm: đổi RIÊNG lần chấm cuối. Nhãn kết quả đổi theo, nhưng điểm
+    bốc đồng phải giữ nguyên — vì nó chỉ được phép nhìn lần chấm đầu.
+    """
+    a = cal_cua([mon(0, "X", 1_000_000, "bought", 9, 2, ctx())])   # mua hớ
+    b = cal_cua([mon(0, "X", 1_000_000, "bought", 9, 9, ctx())])   # mua đúng
+    assert a["outcomes"][0]["label"] == "mua_ho"
+    assert b["outcomes"][0]["label"] == "mua_dung"
+    assert a["outcomes"][0]["impulse"] == b["outcomes"][0]["impulse"]
+    assert a["outcomes"][0]["first_desire"] == b["outcomes"][0]["first_desire"] == 9
+
+
+def test_hai_loai_loi_khong_bi_gop():
+    """false_go (khuyên mua mà hớ) nặng hơn false_hold (cản mà vẫn muốn).
+    Gộp thành một con số độ chính xác là mất đúng phần thông tin cần để
+    chỉnh trọng số."""
+    # Ngưỡng 0: mọi thứ đều "cao" nên mô hình luôn khuyên dừng.
+    luon_dung = cal_cua([mon(0, "X", 1_000_000, "bought", 9, 9, ctx())],
+                        weights={"threshold": 0})
+    assert luon_dung["false_hold"] == 1 and luon_dung["false_go"] == 0
+    # Ngưỡng 100: không gì là "cao" nên mô hình luôn khuyên mua.
+    luon_mua = cal_cua([mon(0, "X", 1_000_000, "bought", 9, 2, ctx())],
+                       weights={"threshold": 100})
+    assert luon_mua["false_go"] == 1 and luon_mua["false_hold"] == 0
+    assert luon_mua["wasted_value"] == 1_000_000
+    # missed_value đếm giá trị công cụ đã cản OAN — kể cả khi người dùng vẫn
+    # mua và thấy đáng. Đó chính là thiệt hại nếu họ nghe theo lời khuyên.
+    assert luon_dung["missed_value"] == 1_000_000
+    assert luon_dung["wasted_value"] == 0
+
+
+def test_hoan_canh_luu_lai_duoc_dung_thay_vi_tinh_hinh_hom_nay():
+    """Cùng một món, chỉ khác thu nhập lúc quyết định, phải ra điểm áp lực
+    khác nhau. Nếu không, hoàn cảnh đã lưu đang bị bỏ qua."""
+    giau = cal_cua([mon(0, "X", 3_000_000, "bought", 9, 2,
+                        ctx(income=40_000_000, savings=100_000_000))])
+    ngheo = cal_cua([mon(0, "X", 3_000_000, "bought", 9, 2,
+                         ctx(income=6_000_000, savings=1_000_000))])
+    assert giau["outcomes"][0]["strain"] < ngheo["outcomes"][0]["strain"]
+
+
+def test_gaps_can_ca_hai_nhom_moi_do_duoc():
+    """Chỉ có món mua hớ mà không có món mua đúng thì không so được."""
+    chi_ho = cal_cua([mon(i, f"M{i}", 1_000_000, "bought", 9, 2, ctx())
+                      for i in range(3)])
+    assert chi_ho["gaps"] == []
+    ca_hai = cal_cua([
+        mon(0, "Hớ", 1_000_000, "bought", 9, 2, ctx(wanted=1, source="ad")),
+        mon(1, "Đúng", 1_000_000, "bought", 9, 9, ctx(wanted=60, source="need")),
+    ])
+    khoa = {g["key"] for g in ca_hai["gaps"]}
+    assert "recency" in khoa and "source" in khoa
+
+
+def test_gaps_xep_theo_chenh_lech_giam_dan():
+    c = cal_cua([
+        mon(0, "Hớ", 1_000_000, "bought", 9, 2, ctx(wanted=1, source="ad")),
+        mon(1, "Đúng", 1_000_000, "bought", 9, 9, ctx(wanted=60, source="need")),
+    ])
+    chenh = [g["gap"] for g in c["gaps"]]
+    assert chenh == sorted(chenh, reverse=True)
+
+
+def test_goi_y_la_cau_hoan_chinh():
+    """Gợi ý hiện thẳng ra giao diện nên phải là câu đọc được, không phải
+    mảnh chuỗi bị cắt."""
+    c = cal_cua([mon(i, f"M{i}", 1_000_000, "bought", 9, 2 if i else 9, ctx())
+                 for i in range(5)])
+    assert c["suggestions"]
+    for s in c["suggestions"]:
+        assert s.strip()
+        assert s.rstrip().endswith((".", "!", "?")), s
+
+
+def test_ho_so_rong_van_tra_ve_khoi_hieu_chinh():
+    c = cal_cua([])
+    assert c["n"] == 0 and c["missing_context"] == 0
+    assert c["outcomes"] == [] and c["gaps"] == []
+
+
+def test_hoan_canh_hong_khong_lam_sap():
+    """File người dùng nạp lên có thể có hoàn cảnh sai kiểu."""
+    r = client.post("/api/profile", json={"items": [
+        mon(0, "X", 1_000_000, "bought", 9, 2, ctx(source="không-có-thật"))]})
+    assert r.status_code == 200
+    assert r.json()["calibration"]["n"] == 1

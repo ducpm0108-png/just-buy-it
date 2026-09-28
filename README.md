@@ -58,7 +58,7 @@ src/                  logic tính toán, không phụ thuộc giao diện
   style.py            lớp trang trí cho Streamlit
 api/main.py           API HTTP: JSON vào, gọi src/, JSON ra
 public/index.html     giao diện — không chứa một công thức nào
-tests/                255 test, chạy bằng pytest
+tests/                270 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
@@ -231,6 +231,10 @@ gốc lên rồi giảm lại.
 
 ## Báo cáo hiệu chỉnh: đo thay vì đoán
 
+Có ở cả hai giao diện, cùng một `src/personalize.py`: tab **Hồ sơ** của bản
+web và của bản Streamlit.
+
+
 Điểm yếu lớn nhất của một mô hình có trọng số là câu hỏi "trọng số đâu ra".
 Thay vì tự nhận là đúng, công cụ tự đo mình trên dữ liệu người dùng.
 
@@ -311,6 +315,27 @@ và chỉ chứa **một hồ sơ** chứ không phải cả database. Phần nh
 định dạng trước, lọc bỏ những cột không có trong lược đồ, và bỏ qua dòng
 rác thay vì làm sập cả lần nhập — file do người dùng tự chọn nên không tin
 được ngay.
+
+### File có chứa số liệu tài chính, và đó là một đánh đổi có chủ ý
+
+Mỗi món lưu kèm **hoàn cảnh lúc quyết định**: số lần dùng, thời gian muốn,
+nguồn biết đến, và cả thu nhập, chi phí cố định, số tiền đang có *vào đúng
+lúc đó*.
+
+Cần vậy để báo cáo hiệu chỉnh chạy được. Chạy lại mô hình bằng tình hình
+tài chính *hôm nay* cho một quyết định sáu tháng trước thì điểm áp lực tài
+chính vô nghĩa — mà kết quả vẫn trông như thật, nên sai kiểu đó tệ hơn là
+không chạy lại. Có test bắt đúng chỗ này: cùng một món, chỉ khác thu nhập
+lúc quyết định, phải ra điểm áp lực khác nhau.
+
+Hệ quả: file xuất ra riêng tư hơn một danh sách mua sắm thường. Hướng dẫn
+nhập/xuất trong app nói thẳng điều này, và câu cũ ("file không chứa thu
+nhập") đã được sửa — để nguyên một câu hứa về quyền riêng tư đã thành sai
+thì tệ hơn không hứa gì.
+
+Món ghi trước khi tính năng này có thì **không có** hoàn cảnh. Chúng bị bỏ
+qua khi chạy lại, và app nói rõ đã bỏ qua bao nhiêu món — thay vì để người
+dùng tưởng mô hình đã xét hết mọi quyết định của họ.
 
 ## Giao diện
 

@@ -311,10 +311,12 @@ def suggestions(cal: Calibration, gaps: List[FactorGap]) -> List[str]:
         )
         return out
 
-    out.append(
-        f"Bộ trọng số hiện tại đoán đúng {cal.n_right}/{cal.n} quyết định "
-        f"({round(cal.accuracy * 100)}%)."
-    )
+    # CỐ TÌNH không có câu "đoán đúng N/M (x%)" ở đây.
+    #
+    # Mọi nơi gọi hàm này đều đã có `cal.accuracy`, `cal.n` và `cal.n_right`,
+    # và cả hai giao diện đều hiện độ chính xác ngay phía trên danh sách gợi
+    # ý. Thêm vào đây là người dùng đọc cùng một con số hai lần liền nhau.
+    # Danh sách này chỉ để nói NÊN LÀM GÌ.
 
     if cal.false_go:
         wasted = f"{round(cal.wasted_value):,}".replace(",", ".")

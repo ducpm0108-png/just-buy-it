@@ -265,6 +265,19 @@ label.btn{display:inline-block}
 
 .foot{color:var(--on-desk-soft);font-size:12.5px;margin-top:30px;max-width:66ch}
 
+/* báo cáo hiệu chỉnh */
+.cal-wrap{margin-top:24px;padding-top:18px;border-top:1px solid var(--rule)}
+.cal-wrap h3{margin-top:0}
+details.cal{border:1px solid var(--rule);border-radius:4px;padding:10px 13px;margin-top:10px}
+details.cal > summary{cursor:pointer;font-size:13.5px;font-weight:500}
+details.cal[open] > summary{margin-bottom:10px}
+details.cal > summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.cal-sug{margin:14px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6}
+.cal-sug li{margin-bottom:7px}
+.cal-sug b{font-weight:600}
+td.r-ok,td.r-bad{font-weight:600}
+.gap-num{font-family:"IBM Plex Mono",monospace;text-align:right;white-space:nowrap}
+
 /* trạng thái API */
 .api-msg{
   background:var(--warn-bg);color:var(--ink);
@@ -621,7 +634,8 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
       <h3>1. Tải dữ liệu về</h3>
       <p>Bấm <b>Tải dữ liệu về</b>, trình duyệt lưu một file tên <code>just-buy-it-&lt;ngày&gt;.json</code>. Đó là file văn bản thường, mở bằng Notepad đọc được.</p>
       <p>Trong file có mọi món bạn đã ghi — kèm các lần chấm lại ham muốn, lịch sử giá, mục tiêu tiết kiệm và nơi bán — cộng với bộ trọng số bạn đang dùng.</p>
-      <p>File <b>không</b> chứa thu nhập, chi phí cố định hay số tiền bạn đang có: bản web này không lưu những số đó, mỗi lần mở lại bạn nhập lại từ đầu. Nhưng nó vẫn có tên những món bạn cân nhắc và các mục tiêu tiết kiệm, nên vẫn là thứ riêng tư.</p>
+      <p><b>File có chứa thu nhập, chi phí cố định và số tiền bạn đang có</b>, đúng như lúc bạn ghi mỗi món. Cần lưu những số đó để tab Hồ sơ chạy lại được mô hình trên các quyết định cũ: điểm áp lực tài chính vô nghĩa nếu tính bằng tình hình hôm nay cho một quyết định sáu tháng trước.</p>
+      <p>Nghĩa là file này riêng tư hơn một danh sách mua sắm thường. Xem mục <b>Lưu ý</b> ở dưới.</p>
 
       <h3>2. Nạp dữ liệu từ file</h3>
       <p>Chọn file rồi chọn một trong hai cách:</p>
@@ -639,7 +653,7 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
 
       <h3>Lưu ý</h3>
       <ul>
-        <li>File có tên các món bạn cân nhắc và mục tiêu tiết kiệm của bạn. Đừng đẩy nó lên GitHub cùng mã nguồn.</li>
+        <li>File có <b>thu nhập, chi phí cố định và số tiền bạn đang có</b>, cộng với tên các món bạn cân nhắc và mục tiêu tiết kiệm. <b>Đừng gửi cho người khác và đừng đẩy lên GitHub cùng mã nguồn.</b></li>
         <li>Chỉ nạp file do chính bạn tải về. Công cụ đã lọc bỏ mọi đường dẫn không phải http hoặc https ở mục “nơi bán”, nhưng file không rõ nguồn thì vẫn không nên nạp.</li>
         <li>File có ghi số phiên bản. Nếu sau này công cụ đổi cấu trúc dữ liệu, file cũ sẽ báo lỗi rõ ràng chứ không nạp sai âm thầm.</li>
       </ul>
@@ -667,7 +681,8 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
       <ul>
         <li>Con số chỉ tốt bằng dữ liệu bạn nhập. Hãy ước tính số lần dùng một cách thật lòng — đó là ô ảnh hưởng nhiều nhất.</li>
         <li>Webapp không tự đọc giá từ các sàn. Giá là do bạn ghi vào, và lịch giảm giá theo danh mục chỉ là các mốc sale định kỳ, không phải dự báo.</li>
-        <li>Dữ liệu chỉ lưu trên trình duyệt này. Không có tài khoản, không gửi đi đâu; xoá dữ liệu trình duyệt là mất. Muốn giữ hoặc mang sang máy khác thì dùng <b>Tải dữ liệu về</b> ở tab Hồ sơ.</li>
+        <li>Dữ liệu <b>chỉ lưu trên trình duyệt này</b>. Không có tài khoản; xoá dữ liệu trình duyệt là mất. Muốn giữ hoặc mang sang máy khác thì dùng <b>Tải dữ liệu về</b> ở tab Hồ sơ.</li>
+        <li>Phép tính chạy trên máy chủ, nên các số bạn nhập <b>có được gửi tới đó</b> mỗi lần hoá đơn cập nhật. Máy chủ tính rồi trả kết quả, <b>không lưu lại gì</b> — nó không có cơ sở dữ liệu nào. Nhưng đó vẫn là gửi đi, nên trên bản online hãy nhập số ước lượng thay vì số thật.</li>
         <li>Muốn xem trước tab Hồ sơ trông ra sao, bấm “Nạp dữ liệu mẫu” trong tab đó.</li>
         <li>Đây là công cụ để nhìn lại thói quen chi tiêu, không phải lời khuyên tài chính.</li>
       </ul>
@@ -744,6 +759,7 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c
 function safeUrl(u){ u = (u || '').trim(); return /^https?:\/\/\S+$/i.test(u) ? u : ''; }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function dec1(n){ return n == null ? '—' : n.toFixed(1).replace('.', ','); }
+function dec2(n){ return n == null ? '—' : n.toFixed(2).replace('.', ','); }
 function pct(n){ return n == null ? '—' : Math.round(n * 100) + '%'; }
 
 /* null từ API nghĩa là "không tính được" (bên Python là vô hạn), khác hẳn
@@ -1305,6 +1321,103 @@ el('waitList').addEventListener('click', function(e){
    Mọi con số ở đây do /api/profile tính, kể cả thời gian bán rã — cùng một
    hàm Python mà tab Đánh giá dùng, nên hai tab không thể cho ra hai con số
    khác nhau. */
+/* Báo cáo hiệu chỉnh: chạy lại mô hình trên các quyết định đã có kết quả,
+   rồi cho biết nó đoán đúng đến đâu.
+
+   Điểm đáng nói của báo cáo này là nó KHÔNG gộp hai loại lỗi. "Khuyên mua
+   mà hoá ra hớ" là lỗi nặng — đúng việc công cụ sinh ra để chặn. "Khuyên
+   dừng mà vẫn muốn" gây khó chịu nhưng không mất tiền. Gộp lại thành một
+   con số độ chính xác là mất đúng phần thông tin cần để chỉnh. */
+function calibrationHtml(c){
+  if(!c) return '';
+  var h = '<div class="cal-wrap"><h3>Bộ trọng số của bạn đoán đúng đến đâu</h3>';
+
+  if(c.missing_context){
+    h += '<p class="note">' + c.missing_context + ' món ghi lại trước khi công cụ ' +
+         'bắt đầu lưu hoàn cảnh lúc quyết định, nên chưa chạy lại được. ' +
+         'Những món ghi từ giờ sẽ có.</p>';
+  }
+
+  if(!c.n){
+    h += '<p class="note">Chưa quyết định nào có kết luận. Một món có kết luận khi ' +
+         'bạn đã chấm lại nó lần hai <i>và</i> đã bấm “Tôi đã mua” hoặc “Tôi bỏ qua”. ' +
+         'Mức 5/10 không tính, vì ở giữa thì không rõ còn muốn hay hết muốn.</p></div>';
+    return h;
+  }
+
+  h += '<p class="note">Chạy lại ' + c.n + ' quyết định đã có kết luận, bằng bộ trọng số ' +
+       '<b>hiện tại</b> của bạn — câu hỏi là “cài đặt bây giờ có bắt được món tôi đã mua hớ không”, ' +
+       'chứ không phải “hồi đó tôi cài gì”. Đoán đúng <b>' + c.n_right + '/' + c.n +
+       '</b> (' + pct(c.accuracy) + ').</p>';
+
+  if(!c.enough_data){
+    h += '<p class="note">Dưới 5 quyết định thì mọi tỷ lệ đều là nhiễu, nên đừng chỉnh ' +
+         'trọng số theo con số này. Còn ' + (5 - c.n) + ' quyết định nữa là đủ để đọc.</p>';
+  }
+
+  h += '<div class="scroll"><table><thead><tr><th></th>' +
+       '<th style="text-align:right">Hoá ra đáng</th>' +
+       '<th style="text-align:right">Hoá ra không đáng</th></tr></thead><tbody>' +
+       '<tr><td>Công cụ khuyên tiến tới</td>' +
+       '<td class="gap-num r-ok">' + c.correct_go + '</td>' +
+       '<td class="gap-num r-bad">' + c.false_go + '</td></tr>' +
+       '<tr><td>Công cụ khuyên dừng</td>' +
+       '<td class="gap-num r-bad">' + c.false_hold + '</td>' +
+       '<td class="gap-num r-ok">' + c.correct_hold + '</td></tr>' +
+       '</tbody></table></div>';
+
+  /* Hai con số tiền gộp thành một dòng, không viết thành đoạn: danh sách
+     gợi ý ngay bên dưới đã nói nên làm gì với chúng, nên viết thành đoạn ở
+     đây là người dùng đọc cùng một ý hai lần. */
+  if(c.wasted_value > 0 || c.missed_value > 0){
+    h += '<p class="msg" style="margin-top:8px">Quy ra tiền: khuyên mua mà bạn đã hối <b>' +
+         vnd(c.wasted_value) + '</b> · cản oan <b>' + vnd(c.missed_value) + '</b>.</p>';
+  }
+
+  if(c.suggestions && c.suggestions.length){
+    h += '<ul class="cal-sug">' + c.suggestions.map(function(s){
+      /* Gợi ý từ Python có **đậm** kiểu markdown; đổi sang thẻ sau khi đã
+         escape, nên nội dung vẫn không chèn được HTML. */
+      return '<li>' + esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  if(c.gaps && c.gaps.length){
+    h += '<details class="cal"><summary>Yếu tố nào phân biệt được món mua hớ</summary>';
+    h += '<p class="note" style="margin-top:0">Với mỗi yếu tố: giá trị trung bình ở nhóm ' +
+         'mua hớ so với nhóm mua đúng. Chênh lệch lớn nghĩa là yếu tố đó mang thông tin ' +
+         'với riêng bạn — nên tăng trọng số. Gần 0 thì nó không nói lên gì.</p>';
+    h += '<div class="scroll"><table><thead><tr><th>Yếu tố</th>' +
+         '<th style="text-align:right">Mua hớ</th><th style="text-align:right">Mua đúng</th>' +
+         '<th style="text-align:right">Chênh</th></tr></thead><tbody>';
+    c.gaps.forEach(function(g){
+      h += '<tr><td>' + esc(g.label) + '</td>' +
+           '<td class="gap-num">' + dec2(g.mean_regret) + '</td>' +
+           '<td class="gap-num">' + dec2(g.mean_good) + '</td>' +
+           '<td class="gap-num">' + (g.gap > 0 ? '+' : '') + dec2(g.gap) + '</td></tr>';
+    });
+    h += '</tbody></table></div></details>';
+  }
+
+  if(c.outcomes && c.outcomes.length){
+    h += '<details class="cal"><summary>Từng quyết định một</summary>';
+    h += '<div class="scroll"><table><thead><tr><th>Món</th><th>Con dấu lúc đó</th>' +
+         '<th>Kết quả thật</th><th style="text-align:right">Áp lực</th>' +
+         '<th style="text-align:right">Bốc đồng</th><th></th></tr></thead><tbody>';
+    c.outcomes.forEach(function(o){
+      h += '<tr><td>' + esc(o.name) + '</td><td>' + esc(o.verdict) + '</td>' +
+           '<td>' + esc(c.labels[o.label] || o.label) + '</td>' +
+           '<td class="gap-num">' + o.strain + '</td>' +
+           '<td class="gap-num">' + o.impulse + '</td>' +
+           '<td class="' + (o.was_right ? 'r-ok' : 'r-bad') + '">' +
+           (o.was_right ? 'đúng' : 'sai') + '</td></tr>';
+    });
+    h += '</tbody></table></div></details>';
+  }
+
+  return h + '</div>';
+}
+
 function renderProfile(){
   if(!items.length){
     el('profileBody').innerHTML = '<div class="empty">Chưa có gì để phân tích. Ghi vài món vào danh sách chờ, hoặc nạp dữ liệu mẫu để xem hồ sơ trông ra sao.</div>';
@@ -1313,8 +1426,8 @@ function renderProfile(){
   apiPost('/api/profile', {
     items: items.map(function(it){
       return { id: it.id, name: it.name, price: it.price,
-               status: it.status, created: it.created,
-               ratings: it.ratings || [] };
+               status: it.status, created: it.created, cat: it.cat || 'other',
+               ratings: it.ratings || [], context: it.context || null };
     }),
     weights: W
   }).then(function(d){
@@ -1340,6 +1453,7 @@ function renderProfile(){
     } else {
       h += '<p class="note">Chưa món nào được chấm lại lần hai. Khi đến hạn, chấm lại ở tab Chờ đã để bắt đầu thấy đường cong suy giảm.</p>';
     }
+    h += calibrationHtml(d.calibration);
     el('profileBody').innerHTML = h;
   }).catch(function(err){
     el('profileBody').innerHTML = '<div class="empty">Chưa tính được hồ sơ — không gọi được API.</div>';
@@ -1347,16 +1461,34 @@ function renderProfile(){
   });
 }
 
+/* Dữ liệu mẫu — số liệu dựng tay để xem trước tab Hồ sơ, không phải dữ
+   liệu thật của ai.
+
+   Bộ này được chọn để báo cáo hiệu chỉnh có việc để nói: bốn trong năm
+   quyết định mô hình đoán đúng, và một cái sai — "Tay cầm chơi game" trông
+   rất đáng mua (dùng nhiều, muốn lâu, nhu cầu tự phát sinh) nên mô hình
+   khuyên MUA ĐI, nhưng cuối cùng người dùng hết muốn. Đó đúng là loại lỗi
+   công cụ này sinh ra để chặn, nên nó là thứ đáng hiện ra.
+
+   Một bộ mẫu đoán đúng 100% sẽ vô dụng: nó không cho thấy báo cáo dùng để
+   làm gì. */
 el('seedBtn').addEventListener('click', function(){
   var now = Date.now();
   function iso(d){ return new Date(now - d * DAY).toISOString(); }
+  var TIEN = { income:8000000, fixed_costs:5000000, savings:12000000 };
+  function ctx(uses, months, wanted, source){
+    return { uses_per_month:uses, months:months, wanted_days:wanted,
+             source:source, owns_similar:false, used_price:null,
+             income:TIEN.income, fixed_costs:TIEN.fixed_costs, savings:TIEN.savings,
+             sale:{ on:false, list_price:null, hours_left:null, low_30d:null } };
+  }
   var demo = [
-    {name:'Bàn phím cơ',        cat:'tech',    price:2400000, status:'bought',  d0:41, v0:9, d1:34, v1:6, shop:'Shopee', tgt:1800000},
-    {name:'Máy pha cà phê',     cat:'home',    price:3900000, status:'skipped', d0:36, v0:8, d1:29, v1:3, shop:'Tiki',   tgt:2500000},
-    {name:'Áo khoác da',        cat:'fashion', price:1800000, status:'bought',  d0:30, v0:9, d1:23, v1:2, shop:'Lazada', tgt:0},
-    {name:'Khoá học dựng phim', cat:'edu',     price:1200000, status:'bought',  d0:25, v0:7, d1:18, v1:7, shop:'Unica',  tgt:0},
-    {name:'Tay cầm chơi game',  cat:'tech',    price:1500000, status:'skipped', d0:21, v0:8, d1:14, v1:4, shop:'Shopee', tgt:0},
-    {name:'Giày chạy bộ',       cat:'sport',   price:2200000, status:'waiting', d0:9,  v0:7, d1:2,  v1:5, shop:'Tiki',   tgt:1700000,
+    {name:'Bàn phím cơ',        cat:'tech',    price:2400000, status:'bought',  d0:41, v0:9, d1:34, v1:6, shop:'Shopee', tgt:1800000, c:ctx(22,36,30,'need')},
+    {name:'Máy pha cà phê',     cat:'home',    price:3900000, status:'skipped', d0:36, v0:8, d1:29, v1:3, shop:'Tiki',   tgt:2500000, c:ctx(8,24,2,'ad')},
+    {name:'Áo khoác da',        cat:'fashion', price:1800000, status:'bought',  d0:30, v0:9, d1:23, v1:2, shop:'Lazada', tgt:0,       c:ctx(3,24,2,'ad')},
+    {name:'Khoá học dựng phim', cat:'edu',     price:1200000, status:'bought',  d0:25, v0:7, d1:18, v1:7, shop:'Unica',  tgt:0,       c:ctx(10,12,45,'need')},
+    {name:'Tay cầm chơi game',  cat:'tech',    price:1500000, status:'bought',  d0:21, v0:7, d1:14, v1:2, shop:'Shopee', tgt:0,       c:ctx(20,36,40,'need')},
+    {name:'Giày chạy bộ',       cat:'sport',   price:2200000, status:'waiting', d0:9,  v0:7, d1:2,  v1:5, shop:'Tiki',   tgt:1700000, c:ctx(12,18,20,'friend'),
      log:[[9,2200000],[5,2050000],[1,1890000]]}
   ];
   items = demo.map(function(x, i){
@@ -1365,7 +1497,8 @@ el('seedBtn').addEventListener('click', function(){
              priceLog:(x.log || [[x.d0, x.price]]).map(function(p){ return { t:iso(p[0]), p:p[1] }; }),
              goals:[{name:'Quỹ dự phòng 3 tháng', amount:15000000}],
              offers:[{store:x.shop, url:'', price:x.price}],
-             ratings:[{t:iso(x.d0), v:x.v0},{t:iso(x.d1), v:x.v1}] };
+             ratings:[{t:iso(x.d0), v:x.v0},{t:iso(x.d1), v:x.v1}],
+             context:x.c };
   });
   saveJSON(K_ITEMS, items); refreshAll();
 });
@@ -1389,6 +1522,30 @@ function impIso(v){
   if(typeof v !== 'string') return '';
   var d = new Date(v);
   return isFinite(d.getTime()) ? d.toISOString() : '';
+}
+
+/* Hoàn cảnh lúc quyết định, lọc từ file người dùng nạp lên.
+   Trả về null nếu thiếu — API bỏ qua món không có hoàn cảnh thay vì đoán
+   bù, vì chạy lại mô hình bằng số liệu bịa ra còn tệ hơn không chạy lại:
+   kết quả trông như thật. */
+var CTX_NUM = ['uses_per_month','months','wanted_days','income','fixed_costs','savings'];
+var SOURCES_OK = ['sale','ad','friend','need'];
+
+function normalizeContext(raw){
+  if(!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  var c = {};
+  CTX_NUM.forEach(function(k){ c[k] = Math.max(0, impNum(raw[k], 0)); });
+  c.source = SOURCES_OK.indexOf(raw.source) >= 0 ? raw.source : 'need';
+  c.owns_similar = !!raw.owns_similar;
+  c.used_price = raw.used_price == null ? null : Math.max(0, impNum(raw.used_price, 0));
+  var s = raw.sale && typeof raw.sale === 'object' ? raw.sale : {};
+  c.sale = {
+    on: !!s.on,
+    list_price: s.list_price == null ? null : Math.max(0, impNum(s.list_price, 0)),
+    hours_left: s.hours_left == null ? null : Math.max(0, impNum(s.hours_left, 0)),
+    low_30d: s.low_30d == null ? null : Math.max(0, impNum(s.low_30d, 0))
+  };
+  return c;
 }
 
 function normalizeItem(raw, i){
@@ -1418,6 +1575,8 @@ function normalizeItem(raw, i){
   o.offers = impArr(raw.offers).filter(function(s){ return s && (s.store || s.url); }).map(function(s){
     return { store: String(s.store || '').slice(0, 60), url: safeUrl(s.url || ''), price: Math.max(0, impNum(s.price, 0)) };
   });
+  var ctx = normalizeContext(raw.context);
+  if(ctx) o.context = ctx;
   return o;
 }
 
@@ -1623,6 +1782,7 @@ el('saveBtn').addEventListener('click', function(){
   var price = num('price');
   if(price <= 0){ el('saveMsg').textContent = 'Nhập giá trước đã.'; return; }
 
+  var body = readInputs();
   var now = Date.now();
   /* Hạn chấm lại do Python tính: nó biết cả thời gian bán rã của người
      dùng lẫn lúc đợt sale kết thúc. */
@@ -1642,7 +1802,26 @@ el('saveBtn').addEventListener('click', function(){
     goals: goals.filter(function(g){ return g.name && g.amount > 0; }).map(function(g){ return { name:g.name.trim(), amount:g.amount }; }),
     listPrice: LAST.metrics.discount ? optNum('listPrice') : null,
     offers: offers.filter(function(o){ return o.store || safeUrl(o.url); }).map(function(o){ return { store:o.store.trim(), url:safeUrl(o.url), price:o.price || 0 }; }),
-    ratings: [{ t: new Date(now).toISOString(), v: num('desire') }]
+    ratings: [{ t: new Date(now).toISOString(), v: num('desire') }],
+    /* Hoàn cảnh lúc quyết định, để sau này chạy lại mô hình trên chính
+       quyết định này. Phải lưu cả thu nhập và tiền tiết kiệm: điểm áp lực
+       tài chính vô nghĩa nếu tính bằng tình hình hôm nay cho một quyết
+       định sáu tháng trước.
+
+       Hệ quả về quyền riêng tư: từ đây file xuất ra CÓ chứa các số đó.
+       Hướng dẫn nhập/xuất đã nói rõ. */
+    context: {
+      uses_per_month: body.item.uses_per_month,
+      months: body.item.months,
+      wanted_days: body.item.wanted_days,
+      source: body.item.source,
+      owns_similar: body.item.owns_similar,
+      used_price: body.item.used_price,
+      income: body.finances.income,
+      fixed_costs: body.finances.fixed_costs,
+      savings: body.finances.savings,
+      sale: body.sale
+    }
   });
   saveJSON(K_ITEMS, items);
   refreshAll();

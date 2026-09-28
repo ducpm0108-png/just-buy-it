@@ -214,6 +214,29 @@ class EvaluateIn(BaseModel):
     now: Optional[datetime] = None
 
 
+class DecisionContext(BaseModel):
+    """Hoàn cảnh lúc quyết định một món — để chạy lại mô hình trên nó.
+
+    Chạy lại cần đúng những gì đã nhập lúc đó, kể cả thu nhập và tiền tiết
+    kiệm: điểm áp lực tài chính vô nghĩa nếu tính bằng tình hình tài chính
+    hôm nay cho một quyết định sáu tháng trước.
+
+    Hình dạng cố ý giống thân của /api/evaluate, để trang lưu lại đúng
+    những gì nó đã gửi đi, không phải dịch tên trường.
+    """
+
+    uses_per_month: float = Field(default=1, ge=0)
+    months: float = Field(default=12, ge=0)
+    wanted_days: float = Field(default=0, ge=0)
+    source: str = "need"
+    owns_similar: bool = False
+    used_price: Optional[float] = Field(default=None, ge=0)
+    income: float = Field(default=0, ge=0)
+    fixed_costs: float = Field(default=0, ge=0)
+    savings: float = Field(default=0, ge=0)
+    sale: SaleIn = Field(default_factory=SaleIn)
+
+
 class ItemRow(BaseModel):
     """Một món đã lưu, đúng hình dạng trang đang giữ trong trình duyệt."""
 
@@ -222,7 +245,12 @@ class ItemRow(BaseModel):
     price: float = Field(default=0, ge=0)
     status: str = "waiting"
     created: Optional[str] = None
+    cat: str = "other"
     ratings: List[RatingIn] = Field(default_factory=list)
+    # None với những món ghi trước khi trang bắt đầu lưu hoàn cảnh. Không
+    # đoán bù: chạy lại bằng số liệu bịa ra còn tệ hơn là không chạy lại,
+    # vì kết quả trông như thật.
+    context: Optional[DecisionContext] = None
 
 
 class ProfileIn(BaseModel):
@@ -403,6 +431,90 @@ def evaluate(body: EvaluateIn) -> Dict[str, Any]:
     }
 
 
+def ratings_of_row(row: Dict[str, Any]) -> List[decay.Rating]:
+    got = [r.to_model() for r in row["obj"].ratings]
+    return [r for r in got if r is not None]
+
+
+def context_from_row(row: Dict[str, Any]):
+    """(Purchase, Finances, thời điểm quyết định) của một món đã lưu.
+
+    `personalize.replay` nhận hàm này thay vì tự đọc dữ liệu, nên cùng một
+    hàm replay dùng được cho cả sqlite (bản Streamlit, qua
+    `db.decision_context`) và cho dữ liệu trong trình duyệt (bản này).
+
+    Mức thèm muốn lúc quyết định là lần chấm ĐẦU TIÊN, không phải lần gần
+    nhất: lần gần nhất chính là kết quả cần đoán, dùng nó làm đầu vào thì
+    mô hình tự biết đáp án.
+    """
+    it = row["obj"]
+    c = it.context
+    p = Purchase(
+        name=it.name, price=it.price,
+        uses_per_month=c.uses_per_month, months=c.months,
+        category=it.cat if it.cat in CATEGORIES else "other",
+        wanted_days=c.wanted_days,
+        source=c.source if c.source in SOURCES else "need",
+        owns_similar=c.owns_similar,
+        desire=it.ratings[0].v if it.ratings else 5,
+        used_price=c.used_price,
+        sale=c.sale.to_model(),
+    )
+    f = Finances(income=c.income, fixed_costs=c.fixed_costs, savings=c.savings)
+    try:
+        decided_at = datetime.fromisoformat(
+            (it.created or "").replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError:
+        decided_at = datetime.now()
+    return p, f, decided_at
+
+
+def calibration_out(items: List[ItemRow], w: Weights) -> Dict[str, Any]:
+    """Đối chiếu mô hình với kết quả thật của người dùng.
+
+    Chỉ dùng những món có đủ hoàn cảnh lúc quyết định. Số món bị bỏ qua
+    được trả về để giao diện nói thẳng ra, thay vì để người dùng tưởng mô
+    hình đã xét hết mọi món của họ.
+    """
+    co_context = [it for it in items if it.context is not None]
+    thieu_context = len(items) - len(co_context)
+
+    rows = [{"id": it.id, "name": it.name, "price": it.price,
+             "status": it.status, "obj": it} for it in co_context]
+
+    outcomes = personalize.replay(rows, ratings_of_row, context_from_row, w)
+    cal = personalize.calibrate(outcomes)
+    gaps = personalize.factor_gaps(rows, ratings_of_row, context_from_row, w)
+
+    return {
+        "missing_context": thieu_context,
+        "enough_data": cal.enough_data,
+        "n": cal.n,
+        "n_right": cal.n_right,
+        "accuracy": fin(cal.accuracy),
+        "correct_go": cal.correct_go,
+        "correct_hold": cal.correct_hold,
+        "false_go": cal.false_go,
+        "false_hold": cal.false_hold,
+        "missed_value": fin(cal.missed_value),
+        "wasted_value": fin(cal.wasted_value),
+        "labels": personalize.LABELS,
+        "outcomes": [{
+            "name": o.name, "price": fin(o.price), "label": o.label,
+            "verdict": o.verdict, "went_ahead": o.went_ahead,
+            "was_right": o.was_right, "strain": o.strain,
+            "impulse": o.impulse, "first_desire": o.first_desire,
+            "last_desire": o.last_desire,
+        } for o in outcomes],
+        "gaps": [{
+            "key": g.key, "label": g.label, "group": g.group,
+            "mean_regret": fin(g.mean_regret), "mean_good": fin(g.mean_good),
+            "gap": fin(g.gap),
+        } for g in gaps],
+        "suggestions": personalize.suggestions(cal, gaps),
+    }
+
+
 @app.post("/api/profile")
 def profile(body: ProfileIn) -> Dict[str, Any]:
     """Hồ sơ mua sắm, tính từ các món client gửi lên.
@@ -410,10 +522,8 @@ def profile(body: ProfileIn) -> Dict[str, Any]:
     Phần bán rã dùng `src/decay.py` — cùng một hàm mà tab Đánh giá dùng,
     nên hai tab không thể cho ra hai con số khác nhau.
 
-    Chưa có phần hiệu chỉnh trọng số (`personalize.calibrate`) vì nó cần
-    biết thu nhập và chi phí cố định *lúc quyết định* từng món, mà trang
-    hiện không lưu các số đó cùng món. Thêm được, nhưng đó là đổi nội dung
-    file xuất ra nên để thành một bước riêng.
+    Phần `calibration` chạy lại mô hình trên các quyết định đã có kết quả,
+    nên chỉ xét những món có đủ hoàn cảnh lúc quyết định.
     """
     w = body.weights.to_model()
     items = body.items
@@ -452,6 +562,7 @@ def profile(body: ProfileIn) -> Dict[str, Any]:
             "total": fin(sum(it.price for it in regret)),
             "names": [it.name for it in regret][:10],
         },
+        "calibration": calibration_out(items, w),
     }
 
 
