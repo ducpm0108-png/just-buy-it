@@ -14,6 +14,13 @@ __pycache__/
 .venv/
 venv/
 
+# Vercel: thư mục làm việc của CLI, không phải cấu hình.
+# vercel.json thì CÓ commit.
+.vercel/
+
+# uv.lock thì CÓ commit, cố ý: Vercel resolve phụ thuộc mất hơn một phút
+# nếu không có lock, và vài mili giây nếu có.
+
 # Hệ điều hành và editor
 .DS_Store
 .vscode/

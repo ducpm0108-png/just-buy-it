@@ -58,14 +58,15 @@ src/                  logic tính toán, không phụ thuộc giao diện
   style.py            lớp trang trí cho Streamlit
 api/main.py           API HTTP: JSON vào, gọi src/, JSON ra
 public/index.html     giao diện — không chứa một công thức nào
-tests/                270 test, chạy bằng pytest
+tests/                286 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
 app.py                giao diện Streamlit cũ, giữ để đối chiếu
 docs/prototype.html   bản HTML cũ tự tính bằng JS — đã đóng băng
 vercel.json           cấu hình deploy
-pyproject.toml        chỉ để chỉ entrypoint cho Vercel
+pyproject.toml        phụ thuộc + entrypoint cho Vercel
+uv.lock               khoá phiên bản, có commit để build nhanh
 ```
 
 Bố cục theo đúng bài giảng: notebook và giao diện để *khám phá*, `src/` để
@@ -435,17 +436,47 @@ trang lẫn API nằm trong một dự án, cùng một tên miền.
 
 Ba cấu hình đáng để ý:
 
-- **`pyproject.toml` khai entrypoint rõ ràng.** Nếu để Vercel tự dò, nó
-  tìm `app.py` ở gốc dự án trước — mà file đó là giao diện Streamlit, vốn
-  không định nghĩa biến `app` cho ASGI và còn chạy cả app Streamlit ngay
-  lúc được import.
-- **`requirements.txt` chỉ có `fastapi`.** Vercel gói mọi thứ đọc được lúc
-  build, nên để streamlit và pandas trong đó là cài cả trăm MB không dùng
-  tới. Phụ thuộc của bản Streamlit nằm trong `requirements-streamlit.txt`.
-  Hệ quả: bản Streamlit Cloud cũ sẽ không còn cài được streamlit — đúng ý
+- **`pyproject.toml` khai cả phụ thuộc lẫn entrypoint.** Xem phần dưới —
+  lần deploy đầu đổ đúng ở đây.
+- **Chỉ một phụ thuộc: `fastapi`.** Vercel gói mọi thứ đọc được lúc build,
+  nên để streamlit và pandas trong đó là cài cả trăm MB không dùng tới.
+  Phụ thuộc của bản Streamlit nằm trong `requirements-streamlit.txt`. Hệ
+  quả: bản Streamlit Cloud cũ sẽ không còn cài được streamlit — đúng ý
   muốn, vì Vercel thay nó.
 - **`vercel.json` loại `tests/`, `docs/`, `data/` khỏi gói.** Không loại
   `public/` — chính app Python phục vụ trang từ đó.
+
+### Lần deploy đầu đổ, và vì sao
+
+```
+Installing required dependencies from pyproject.toml...
+error: No `project` table found in: /vercel/path0/pyproject.toml
+```
+
+`pyproject.toml` lúc đó chỉ có bảng `[tool.vercel]` để chỉ entrypoint, cố
+tình bỏ `[project]` để phụ thuộc chỉ khai một nơi là `requirements.txt`.
+
+Chỗ sai: **chỉ cần pyproject.toml tồn tại là Vercel dùng `uv` đọc phụ thuộc
+từ đó** và bỏ qua requirements.txt — mà `uv lock` bắt buộc có `[project]`.
+Không có cách nào "vừa có pyproject để chỉ entrypoint, vừa để
+requirements.txt lo phụ thuộc": có pyproject là nó lo cả hai.
+
+Bản sửa khai `[project]` đầy đủ, cộng `[tool.uv] package = false` để uv
+biết đây là ứng dụng chứ không phải thư viện cần build (thiếu dòng đó thì
+uv đòi `[build-system]`).
+
+`requirements.txt` giữ lại cho ai quen `pip install -r`, và
+`test_phu_thuoc_khai_o_hai_noi_phai_khop` bắt hai chỗ lệch nhau — duplication
+thì được, miễn có test giữ cho nó trung thực.
+
+`uv.lock` **có** commit: với lock, Vercel resolve mất vài mili giây; không
+có lock thì hơn một phút.
+
+`tests/test_cau_hinh_deploy.py` có 16 test chặn cả loại lỗi này: có
+`[project]` không, entrypoint trỏ tới file có thật không, `.python-version`
+có thoả `requires-python` không, `vercel.json` có vô tình loại `public/`
+không. Cấu hình sai mà chỉ lộ ra khi build thì mỗi lần thử mất vài phút —
+đáng để rà bằng `pytest`.
 
 ### Vì sao API tự phục vụ luôn trang tĩnh
 

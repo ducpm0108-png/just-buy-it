@@ -1,8 +1,34 @@
-# Chỉ có một việc: nói cho Vercel biết chạy file nào.
+# Phụ thuộc và entrypoint cho bản deploy trên Vercel.
 #
-# Không có bảng [project] ở đây là có chủ ý. Vercel đọc phần phụ thuộc từ
-# pyproject.toml, requirements.txt hoặc Pipfile; khai ở hai chỗ thì sớm muộn
-# hai chỗ lệch nhau. Để requirements.txt là nơi duy nhất khai phụ thuộc.
+# Bản trước của file này chỉ có bảng [tool.vercel], cố ý bỏ [project] để
+# tránh khai phụ thuộc ở hai nơi. Build đổ:
+#
+#     error: No `project` table found in: /vercel/path0/pyproject.toml
+#
+# Lý do: chỉ cần pyproject.toml TỒN TẠI là Vercel dùng `uv` đọc phụ thuộc
+# từ đó thay vì đọc requirements.txt, mà `uv lock` bắt buộc phải có
+# [project]. Tức là không có cách nào "vừa có pyproject để chỉ entrypoint,
+# vừa để requirements.txt lo phụ thuộc" — có pyproject là nó lo cả hai.
+
+[project]
+name = "just-buy-it"
+version = "1.0.0"
+description = "Đánh giá một khoản mua sắm trước khi xuống tiền"
+# 3.11 trở lên, không phải 3.12: Vercel dùng 3.12 (xem .python-version) còn
+# máy phát triển có thể đang 3.11, và mã không cần gì của 3.12.
+requires-python = ">=3.11"
+
+# Chỉ fastapi. Phần tính toán trong src/ dùng thư viện chuẩn của Python, còn
+# giao diện là một trang HTML tĩnh. Không cần pandas, không cần numpy.
+#
+# requirements.txt vẫn giữ đúng dòng này cho ai quen `pip install -r`, và
+# `test_phu_thuoc_khai_o_hai_noi_phai_khop` bắt hai chỗ lệch nhau.
+dependencies = ["fastapi>=0.115"]
+
+[tool.uv]
+# Đây là một ứng dụng, không phải thư viện để cài. Thiếu dòng này thì uv
+# coi nó là package và đòi [build-system] để build chính nó.
+package = false
 
 [tool.vercel]
 # Bắt buộc phải khai rõ. Nếu để Vercel tự dò, nó tìm theo thứ tự app.py,
