@@ -58,14 +58,14 @@ src/                  logic tính toán, không phụ thuộc giao diện
   style.py            lớp trang trí cho Streamlit
 api/main.py           API HTTP: JSON vào, gọi src/, JSON ra
 public/index.html     giao diện — không chứa một công thức nào
-tests/                270 test, chạy bằng pytest
+tests/                388 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
 app.py                giao diện Streamlit cũ, giữ để đối chiếu
-docs/prototype.html   bản HTML cũ tự tính bằng JS — đã đóng băng
 vercel.json           cấu hình deploy
-pyproject.toml        chỉ để chỉ entrypoint cho Vercel
+pyproject.toml        phụ thuộc + entrypoint cho Vercel
+uv.lock               khoá phiên bản, có commit để build nhanh
 ```
 
 Bố cục theo đúng bài giảng: notebook và giao diện để *khám phá*, `src/` để
@@ -95,6 +95,13 @@ Trang còn nạp cả **từ vựng** từ Python: nhãn danh mục, nhãn ngu�
 tên và công thức của từng yếu tố đều lấy qua `GET /api/meta`. Sửa một nhãn
 trong `src/scoring.py` là giao diện đổi theo, không phải sửa hai nơi.
 
+Chỗ yếu của cách tách này: đổi tên một trường bên Python mà quên sửa trang
+thì **trang không báo lỗi** — nó chỉ hiện `—` hoặc `undefined`, và không ai
+biết cho tới lúc trình bày. Nên hợp đồng giữa hai nửa được viết thành danh
+sách và rà bằng test: `TRANG_DOC_EVALUATE`, `TRANG_DOC_PROFILE`,
+`TRANG_DOC_META` trong `tests/test_api.py` liệt kê từng đường dẫn trang
+thật sự đọc, và mỗi đường dẫn là một test.
+
 ### Ba endpoint
 
 | Endpoint | Việc |
@@ -118,6 +125,12 @@ nên nếu dữ liệu nằm trên server thì ai mở link cũng đọc đượ
 số tiền tiết kiệm của người khác. Không lưu gì thì không có gì để rò rỉ —
 và nhờ vậy `allow_origins=["*"]` cũng an toàn, vì API không cho người gọi
 bất cứ thứ gì mà họ chưa tự mang tới.
+
+Đổi lại, API công khai thì ai cũng gửi được đầu vào lớn bao nhiêu cũng
+được. Nên kích cỡ bị chặn ngay ở lớp kiểm tra: tối đa 2.000 món, 500 lần
+chấm cho một món, 50 mục tiêu. Các mức này rộng hơn nhu cầu thật rất nhiều
+nên không chặn ai, nhưng chúng biến "gửi 100.000 món" từ *hàm hết thời
+gian, app trông như treo* thành một lỗi 422 có lời giải thích.
 
 ### Biên JSON
 
@@ -339,10 +352,15 @@ dùng tưởng mô hình đã xét hết mọi quyết định của họ.
 
 ## Giao diện
 
-Bảng màu trong `.streamlit/config.toml` lấy từ bản dựng thử HTML, theo ẩn dụ
-tờ hoá đơn đặt trên mặt bàn: vùng nội dung là giấy, thanh bên là mặt bàn,
-màu nhấn là màu mực con dấu. Mỗi chế độ sáng/tối có bảng màu riêng, và app
-theo đúng chế độ người dùng đang chọn.
+Bảng màu dùng chung cho cả hai giao diện (`public/index.html` và
+`.streamlit/config.toml`), theo ẩn dụ tờ hoá đơn đặt trên mặt bàn: vùng nội
+dung là giấy, thanh bên là mặt bàn, màu nhấn là màu mực con dấu. Mỗi chế độ
+sáng/tối có bảng màu riêng.
+
+Khác nhau ở chỗ **ai quyết định chế độ**. Trang web tự có công tắc
+Tự động/Sáng/Tối, nên nó biết chắc mình đang vẽ chế độ nào và gọi tên màu
+theo chế độ là an toàn. Bản Streamlit thì không biết — xem phần cuối mục
+này.
 
 Hai thanh điểm đổi màu theo **trạng thái**: dưới ngưỡng xanh, vượt ngưỡng
 đỏ, kèm vạch dọc đánh dấu ngưỡng. Vạch đó là thứ làm con số có nghĩa — 47
@@ -435,17 +453,47 @@ trang lẫn API nằm trong một dự án, cùng một tên miền.
 
 Ba cấu hình đáng để ý:
 
-- **`pyproject.toml` khai entrypoint rõ ràng.** Nếu để Vercel tự dò, nó
-  tìm `app.py` ở gốc dự án trước — mà file đó là giao diện Streamlit, vốn
-  không định nghĩa biến `app` cho ASGI và còn chạy cả app Streamlit ngay
-  lúc được import.
-- **`requirements.txt` chỉ có `fastapi`.** Vercel gói mọi thứ đọc được lúc
-  build, nên để streamlit và pandas trong đó là cài cả trăm MB không dùng
-  tới. Phụ thuộc của bản Streamlit nằm trong `requirements-streamlit.txt`.
-  Hệ quả: bản Streamlit Cloud cũ sẽ không còn cài được streamlit — đúng ý
+- **`pyproject.toml` khai cả phụ thuộc lẫn entrypoint.** Xem phần dưới —
+  lần deploy đầu đổ đúng ở đây.
+- **Chỉ một phụ thuộc: `fastapi`.** Vercel gói mọi thứ đọc được lúc build,
+  nên để streamlit và pandas trong đó là cài cả trăm MB không dùng tới.
+  Phụ thuộc của bản Streamlit nằm trong `requirements-streamlit.txt`. Hệ
+  quả: bản Streamlit Cloud cũ sẽ không còn cài được streamlit — đúng ý
   muốn, vì Vercel thay nó.
-- **`vercel.json` loại `tests/`, `docs/`, `data/` khỏi gói.** Không loại
+- **`vercel.json` loại `tests/`, `data/`, `scripts/` khỏi gói.** Không loại
   `public/` — chính app Python phục vụ trang từ đó.
+
+### Lần deploy đầu đổ, và vì sao
+
+```
+Installing required dependencies from pyproject.toml...
+error: No `project` table found in: /vercel/path0/pyproject.toml
+```
+
+`pyproject.toml` lúc đó chỉ có bảng `[tool.vercel]` để chỉ entrypoint, cố
+tình bỏ `[project]` để phụ thuộc chỉ khai một nơi là `requirements.txt`.
+
+Chỗ sai: **chỉ cần pyproject.toml tồn tại là Vercel dùng `uv` đọc phụ thuộc
+từ đó** và bỏ qua requirements.txt — mà `uv lock` bắt buộc có `[project]`.
+Không có cách nào "vừa có pyproject để chỉ entrypoint, vừa để
+requirements.txt lo phụ thuộc": có pyproject là nó lo cả hai.
+
+Bản sửa khai `[project]` đầy đủ, cộng `[tool.uv] package = false` để uv
+biết đây là ứng dụng chứ không phải thư viện cần build (thiếu dòng đó thì
+uv đòi `[build-system]`).
+
+`requirements.txt` giữ lại cho ai quen `pip install -r`, và
+`test_phu_thuoc_khai_o_hai_noi_phai_khop` bắt hai chỗ lệch nhau — duplication
+thì được, miễn có test giữ cho nó trung thực.
+
+`uv.lock` **có** commit: với lock, Vercel resolve mất vài mili giây; không
+có lock thì hơn một phút.
+
+`tests/test_cau_hinh_deploy.py` có 16 test chặn cả loại lỗi này: có
+`[project]` không, entrypoint trỏ tới file có thật không, `.python-version`
+có thoả `requires-python` không, `vercel.json` có vô tình loại `public/`
+không. Cấu hình sai mà chỉ lộ ra khi build thì mỗi lần thử mất vài phút —
+đáng để rà bằng `pytest`.
 
 ### Vì sao API tự phục vụ luôn trang tĩnh
 
@@ -463,9 +511,20 @@ trong trình xem artifact. Hai nơi sau không cùng gốc nên phải gọi đ�
 tuyệt đối.
 
 Thay vì đoán theo tên miền, trang gọi thử cùng gốc trước; hỏng thì mới dùng
-`API_FALLBACK`. Đoán theo tên miền là thứ sẽ sai ngay lần đầu dự án có tên
-miền riêng. Sau lần deploy đầu, sửa `API_FALLBACK` ở đầu phần script trong
-`public/index.html` thành tên miền thật.
+địa chỉ dự phòng. Đoán theo tên miền là thứ sẽ sai ngay lần đầu dự án có
+tên miền riêng.
+
+Địa chỉ dự phòng nằm ở một thẻ `<meta>` trong `<head>`, không viết trong
+JavaScript:
+
+```html
+<meta name="jbi-api" content="https://tên-của-bạn.vercel.app">
+```
+
+Để trống thì trang chỉ gọi cùng gốc — đúng cho bản trên Vercel. Điền vào
+khi cần mở trang bằng file hoặc trong trình xem artifact. Đặt ở thẻ meta để
+đổi tên miền là sửa một dòng HTML, không phải đi tìm trong hơn 1.200 dòng
+script.
 
 ## Giới hạn đã biết
 

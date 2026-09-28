@@ -4,6 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Just Buy It?</title>
+<meta name="description" content="Món này tốn bao nhiêu cho mỗi lần bạn thật sự dùng nó. Nhập giá và tình hình tiền bạc, nhận lại một hoá đơn chi phí thật kèm kết luận nên mua hay chờ.">
+<meta name="color-scheme" content="light dark">
+
+<!-- Địa chỉ API khi trang KHÔNG cùng gốc với nó — tức khi mở bằng file
+     hoặc trong trình xem artifact. Để trống thì chỉ gọi cùng gốc, đúng cho
+     bản trên Vercel.
+
+     Đặt ở thẻ meta chứ không viết trong JavaScript: sau này đổi tên miền
+     thì sửa đúng một dòng HTML, không phải đi tìm trong 1.200 dòng script. -->
+<meta name="jbi-api" content="">
+
+<!-- Thẻ chia sẻ: dán link vào báo cáo hay nhóm chat thì có tiêu đề và mô
+     tả tử tế thay vì trơ một URL. -->
+<meta property="og:title" content="Just Buy It?">
+<meta property="og:description" content="Hoá đơn chi phí thật cho một khoản mua sắm, trước khi bạn xuống tiền.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+
+<!-- Favicon nội tuyến: dấu hỏi trên nền màu mực con dấu. Nội tuyến để
+     không phải thêm file, và không có request thứ hai nào bị 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23B3382C'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='21' font-weight='700' text-anchor='middle' fill='%23FFFEFA'%3E?%3C/text%3E%3C/svg%3E">
 <script>
 try{var t=localStorage.getItem('justbuyit.theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}
 </script>
@@ -288,6 +309,9 @@ td.r-ok,td.r-bad{font-weight:600}
 /* Hoá đơn mờ đi trong lúc chờ API, thay vì để số cũ đứng im như thật. */
 .receipt.busy{opacity:.55;transition:opacity .12s}
 @media (prefers-reduced-motion: reduce){.receipt.busy{transition:none}}
+.r-boot{font-size:12.5px;line-height:1.6;color:var(--ink-soft);margin:10px 0}
+.r-boot span{display:block;font-size:11.5px;opacity:.8}
+.r-boot[hidden]{display:none}
 
 /* help button + guide */
 .panel.has-help{position:relative}
@@ -446,8 +470,14 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
         <div class="receipt" id="receipt">
           <div class="r-head"><b>JUST BUY IT?</b><small>hoá đơn chi phí thật</small></div>
           <div class="r-rule"></div>
-          <div class="r-item" id="rName"></div>
-          <div class="r-price" id="rPrice"></div>
+          <!-- Hiện tới khi có phản hồi đầu tiên. Trên Vercel, lần mở đầu
+               sau một lúc không ai dùng phải đánh thức hàm Python, mất
+               một hai giây — để tờ hoá đơn trống trơn trong lúc đó thì
+               người dùng tưởng app hỏng. -->
+          <p class="r-boot" id="rBoot">Đang kết nối tới phần tính toán…
+            <span>Lần mở đầu có thể chờ một hai giây, vì máy chủ vừa được đánh thức.</span></p>
+          <div class="r-item" id="rName">…</div>
+          <div class="r-price" id="rPrice">…</div>
           <div id="rSale"></div>
 
           <div class="r-rule"></div>
@@ -489,7 +519,14 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
           </div>
 
           <div class="r-rule"></div>
-          <div class="stamp-area"><div class="stamp" id="stamp"></div></div>
+          <!-- Con dấu là kết luận của cả tờ hoá đơn, nên nó là thứ đáng
+               đọc lên cho người dùng trình đọc màn hình. Đặt aria-live ở
+               đây chứ không ở cả tờ hoá đơn: tờ hoá đơn đổi theo từng lần
+               gõ, đọc hết thì thành tiếng ồn, còn kết luận chỉ đổi khi
+               vượt ngưỡng. -->
+          <div class="stamp-area" role="status" aria-live="polite" aria-atomic="true">
+            <div class="stamp" id="stamp"></div>
+          </div>
           <p class="verdict-note" id="verdictNote"></p>
         </div>
       </div>
@@ -690,7 +727,7 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
     </div>
   </dialog>
 
-  <p class="foot">Bản chạy thử. <button class="link-btn" id="introLink" style="color:inherit;padding:0">Xem lại giới thiệu</button>. Mọi con số đều tính từ dữ liệu bạn tự nhập và chỉ lưu trên trình duyệt này. Đây là công cụ để nhìn lại thói quen chi tiêu, không phải lời khuyên tài chính.</p>
+  <p class="foot"><button class="link-btn" id="introLink" style="color:inherit;padding:0">Xem lại giới thiệu</button>. Mọi con số đều tính từ dữ liệu bạn tự nhập và chỉ lưu trên trình duyệt này. Đây là công cụ để nhìn lại thói quen chi tiêu, không phải lời khuyên tài chính.</p>
 </div>
 
 <script>
@@ -719,7 +756,10 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
    dùng địa chỉ dự phòng. Đoán theo tên miền là thứ sẽ sai ngay lần đầu có
    tên miền riêng. */
 
-var API_FALLBACK = 'https://just-buy-it.vercel.app';   /* sửa sau lần deploy đầu */
+var API_FALLBACK = (function(){
+  var m = document.querySelector('meta[name="jbi-api"]');
+  return m ? (m.getAttribute('content') || '').replace(/\/+$/, '') : '';
+})();
 var API = null;          /* gốc đang dùng, do boot() chọn */
 var META = null;         /* từ vựng giao diện, nạp một lần lúc mở trang */
 
@@ -819,8 +859,31 @@ var goals = [
 
 
 /* ================= báo lỗi API ================= */
+/* Lỗi do người gõ và lỗi do máy chủ cần hai câu khác nhau: 422 nghĩa là
+   sửa ô nhập là xong, còn mất kết nối nghĩa là chờ hoặc xem lại deploy.
+   Gộp thành một câu "không tính được" là người dùng đi kiểm sai chỗ. */
+function loiNhapLieu(err){
+  try{
+    var chi_tiet = JSON.parse(err.body).detail;
+    if(!Array.isArray(chi_tiet) || !chi_tiet.length) return '';
+    var o = chi_tiet[0];
+    var duong_dan = (o.loc || []).filter(function(x){ return x !== 'body'; }).join(' → ');
+    return duong_dan ? duong_dan + ': ' + o.msg : o.msg;
+  }catch(e){ return ''; }
+}
+
 function apiDown(err){
   var p = el('apiMsg');
+
+  if(err && err.status === 422){
+    var chi_tiet = loiNhapLieu(err);
+    p.innerHTML = '<b>Có ô nhập chưa hợp lệ.</b> ' +
+      (chi_tiet ? esc(chi_tiet) + '. ' : '') +
+      'Sửa ô đó là hoá đơn tính lại ngay.';
+    p.hidden = false;
+    return;
+  }
+
   var dia = API === null ? '(chưa chọn được)' : (API || location.origin);
   var vi_sao = err && err.status
     ? 'Máy chủ trả về lỗi ' + err.status + '.'
@@ -921,6 +984,7 @@ function evaluateNow(){
     apiOk();
     LAST = d;
     el('receipt').classList.remove('busy');
+    el('rBoot').hidden = true;
     renderReceipt(d);
     renderAlts(d);
     renderGoalBars(body);
@@ -1402,11 +1466,18 @@ function calibrationHtml(c){
   if(c.outcomes && c.outcomes.length){
     h += '<details class="cal"><summary>Từng quyết định một</summary>';
     h += '<div class="scroll"><table><thead><tr><th>Món</th><th>Con dấu lúc đó</th>' +
-         '<th>Kết quả thật</th><th style="text-align:right">Áp lực</th>' +
+         '<th>Kết quả thật</th><th style="text-align:right">Thèm muốn</th>' +
+         '<th style="text-align:right">Áp lực</th>' +
          '<th style="text-align:right">Bốc đồng</th><th></th></tr></thead><tbody>';
     c.outcomes.forEach(function(o){
+      /* Cột thèm muốn hiện cả trước và sau: đó là bằng chứng của kết quả,
+         và nó cho thấy nhãn "mua rồi hết muốn" đến từ đâu thay vì bắt
+         người dùng tin. */
+      var roi = o.last_desire < o.first_desire;
       h += '<tr><td>' + esc(o.name) + '</td><td>' + esc(o.verdict) + '</td>' +
            '<td>' + esc(c.labels[o.label] || o.label) + '</td>' +
+           '<td class="gap-num">' + o.first_desire + ' → <b class="' +
+           (roi ? 'down' : 'up') + '">' + o.last_desire + '</b></td>' +
            '<td class="gap-num">' + o.strain + '</td>' +
            '<td class="gap-num">' + o.impulse + '</td>' +
            '<td class="' + (o.was_right ? 'r-ok' : 'r-bad') + '">' +
@@ -1448,7 +1519,15 @@ function renderProfile(){
       }
       h += '</p>';
       if(d.regret.count){
-        h += '<p class="note">Có <b>' + d.regret.count + ' món đã mua</b> mà giờ bạn chỉ còn chấm 4/10 trở xuống, tổng ' + vnd(d.regret.total) + '.</p>';
+        /* Kể tên món ra, không chỉ đếm: "2 món, tổng 3.300.000 ₫" là một
+           con số để gật đầu cho qua, còn thấy đúng tên món mình đã mua thì
+           khác hẳn. API trả về tối đa 10 tên. */
+        h += '<p class="note">Có <b>' + d.regret.count + ' món đã mua</b> mà giờ bạn chỉ còn chấm 4/10 trở xuống, tổng ' + vnd(d.regret.total) + '';
+        if(d.regret.names && d.regret.names.length){
+          h += ': ' + d.regret.names.map(esc).join(', ') +
+               (d.regret.count > d.regret.names.length ? '…' : '');
+        }
+        h += '.</p>';
       }
     } else {
       h += '<p class="note">Chưa món nào được chấm lại lần hai. Khi đến hạn, chấm lại ở tab Chờ đã để bắt đầu thấy đường cong suy giảm.</p>';
