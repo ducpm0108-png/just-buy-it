@@ -9,17 +9,20 @@ món đồ **thật sự** tốn bao nhiêu, kèm một trong bốn kết luận
 
 ## Chạy thử
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-Muốn xem trước tab Hồ sơ mà chưa dùng đủ lâu thì nạp dữ liệu mẫu — bấm
-nút trong tab Hồ sơ, hoặc chạy:
+Bản chính thức là một trang HTML cộng một API Python. Cùng một lệnh chạy
+cả hai, trên cùng một cổng — giống hệt lúc deploy:
 
 ```bash
-python -m scripts.seed_demo
+pip install -r requirements-dev.txt
+uvicorn api.main:app --reload
 ```
+
+Rồi mở http://localhost:8000. Tài liệu API tự sinh ở
+http://localhost:8000/docs — bấm thử từng endpoint được, không cần viết
+lệnh curl nào.
+
+Muốn xem trước tab Hồ sơ mà chưa dùng đủ lâu thì bấm **Nạp dữ liệu mẫu**
+trong tab Hồ sơ.
 
 Chạy test:
 
@@ -27,8 +30,18 @@ Chạy test:
 pytest
 ```
 
-Phần tính toán trong `src/` chỉ dùng thư viện chuẩn của Python, nên chạy
-test không cần cài Streamlit.
+Phần tính toán trong `src/` chỉ dùng thư viện chuẩn của Python. Test của
+`src/` chạy được mà không cần cài gì thêm; test của API cần `fastapi` và
+tự bỏ qua nếu thiếu.
+
+Giao diện Streamlit cũ vẫn chạy được, và giữ lại có ích: hai giao diện gọi
+cùng một `src/`, nên nếu chúng cho ra hai con số khác nhau thì đó là lỗi và
+biết ngay.
+
+```bash
+pip install -r requirements-streamlit.txt
+streamlit run app.py
+```
 
 ## Cấu trúc
 
@@ -40,20 +53,84 @@ src/                  logic tính toán, không phụ thuộc giao diện
   sale.py             phân tích đợt giảm giá có thời hạn
   calendar_vn.py      lịch giảm giá theo danh mục
   decay.py            thời gian bán rã của ham muốn
-  db.py               lưu trữ bằng sqlite3
+  db.py               lưu trữ bằng sqlite3 (chỉ bản Streamlit dùng)
   personalize.py      thời gian chờ riêng, báo cáo hiệu chỉnh
-  style.py            lớp trang trí: font, hình khối, mép răng cưa
-tests/                202 test, chạy bằng pytest
+  style.py            lớp trang trí cho Streamlit
+api/main.py           API HTTP: JSON vào, gọi src/, JSON ra
+public/index.html     giao diện — không chứa một công thức nào
+tests/                255 test, chạy bằng pytest
 scripts/
   seed_demo.py        nạp dữ liệu mẫu để demo
   send_reminders.py   gửi email nhắc chấm lại
-docs/prototype.html   bản dựng thử giao diện, dùng làm bản thiết kế
-app.py                giao diện Streamlit
+app.py                giao diện Streamlit cũ, giữ để đối chiếu
+docs/prototype.html   bản HTML cũ tự tính bằng JS — đã đóng băng
+vercel.json           cấu hình deploy
+pyproject.toml        chỉ để chỉ entrypoint cho Vercel
 ```
 
-Tách `src/` khỏi `app.py` theo đúng bố cục dự án trong bài giảng: notebook
-và giao diện để *khám phá*, `src/` để *lưu code ổn định*. `app.py` không
-chứa một công thức nào — chỉ đọc ô nhập, gọi hàm trong `src/`, vẽ kết quả.
+Bố cục theo đúng bài giảng: notebook và giao diện để *khám phá*, `src/` để
+*lưu code ổn định*. Cả `api/main.py` lẫn `app.py` đều không chứa công thức
+nào — chỉ đọc đầu vào, gọi `src/`, trả kết quả.
+
+## Kiến trúc: một nguồn sự thật cho mọi con số
+
+Dự án từng có **hai bản của mỗi công thức**: một trong `src/scoring.py`
+cho bản Streamlit, một viết bằng JavaScript trong trang HTML. Hai bản là
+hai nguồn sự thật, và khi chúng lệch nhau thì không có cách nào biết bản
+nào đúng.
+
+Giờ chỉ còn một:
+
+```
+public/index.html          api/main.py              src/
+  đọc ô nhập        ──►   JSON → dataclass    ──►   mọi phép tính
+  vẽ kết quả        ◄──   dataclass → JSON    ◄──   (thư viện chuẩn)
+```
+
+Trang không tính gì cả — kiểm chứng được bằng `grep`: trong JavaScript
+không còn `Math.pow`, không còn hằng số `1.06` của lãi kép, không còn
+`/ 176` của số giờ làm mỗi tháng.
+
+Trang còn nạp cả **từ vựng** từ Python: nhãn danh mục, nhãn nguồn biết đến,
+tên và công thức của từng yếu tố đều lấy qua `GET /api/meta`. Sửa một nhãn
+trong `src/scoring.py` là giao diện đổi theo, không phải sửa hai nơi.
+
+### Ba endpoint
+
+| Endpoint | Việc |
+|---|---|
+| `GET /api/meta` | Từ vựng giao diện: danh mục, nguồn, các yếu tố, bộ trọng số có sẵn |
+| `POST /api/evaluate` | Toàn bộ nội dung tờ hoá đơn, một lần gọi |
+| `POST /api/profile` | Hồ sơ mua sắm, tính từ các món client gửi lên |
+
+Một endpoint cho cả tờ hoá đơn là có chủ ý: hoá đơn cập nhật theo từng lần
+gõ, nên mỗi lần chỉ nên có đúng một vòng đi về. Trang gom 180ms rồi mới
+gọi, và đánh số thứ tự để phản hồi về muộn của lần gõ cũ không ghi đè kết
+quả của lần gõ mới.
+
+### Không có cơ sở dữ liệu
+
+API **không giữ trạng thái**. Dữ liệu người dùng nằm trong trình duyệt của
+họ; endpoint nào cần lịch sử thì nhận lịch sử kèm trong request.
+
+Đây không phải cách làm cho tiện. Trang là công khai và không có đăng nhập,
+nên nếu dữ liệu nằm trên server thì ai mở link cũng đọc được thu nhập và
+số tiền tiết kiệm của người khác. Không lưu gì thì không có gì để rò rỉ —
+và nhờ vậy `allow_origins=["*"]` cũng an toàn, vì API không cho người gọi
+bất cứ thứ gì mà họ chưa tự mang tới.
+
+### Biên JSON
+
+Python có `inf`, JSON thì không. `inf` xuất hiện thật: giá mỗi lần dùng là
+vô hạn khi người dùng để số lần dùng bằng 0. Nếu để nó đi ra nguyên dạng,
+`json.dumps` in ra chữ `Infinity`, và `JSON.parse` của trình duyệt coi đó
+là lỗi cú pháp rồi ném — mất cả phản hồi, không phải sai một ô.
+
+Nên `api/main.py` đổi mọi số không hữu hạn thành `null` ở đúng một chỗ, và
+trang hiển thị `null` thành `∞` hoặc `—`. `null` nghĩa là "không tính
+được", khác hẳn `0`; lẫn hai thứ thì hoá đơn báo món đồ miễn phí, tức là
+sai theo hướng nguy hiểm nhất. Có bốn test chặn việc này, mỗi test một
+cách làm cho phép tính ra vô hạn.
 
 ## Cá nhân hoá mà không cần đăng nhập
 
@@ -318,6 +395,52 @@ Hai chỗ **vẫn** gọi tên màu, có lý do:
   Nên đích là 3:1 cho chữ lớn in đậm; bốn màu hiện tại đạt 3,4–3,8:1 và
   `test_mau_con_dau_doc_duoc_tren_ca_hai_mat_giay` tính lại từ bảng màu
   trong config.toml mỗi lần chạy.
+
+## Deploy lên Vercel
+
+Vercel chạy được Python thật (3.12/3.13/3.14) và tự nhận FastAPI, nên cả
+trang lẫn API nằm trong một dự án, cùng một tên miền.
+
+1. vercel.com → **Add New → Project** → chọn repo này.
+2. Framework Preset để **Other**, không đặt Build Command.
+3. **Deploy**. Vercel đọc `requirements.txt`, thấy `fastapi`, và lấy
+   entrypoint từ `[tool.vercel]` trong `pyproject.toml`.
+4. Xong thì mở `https://<tên>.vercel.app/api/health` — phải trả về
+   `{"status":"ok"}`. Rồi mở `/` để xem trang.
+
+Ba cấu hình đáng để ý:
+
+- **`pyproject.toml` khai entrypoint rõ ràng.** Nếu để Vercel tự dò, nó
+  tìm `app.py` ở gốc dự án trước — mà file đó là giao diện Streamlit, vốn
+  không định nghĩa biến `app` cho ASGI và còn chạy cả app Streamlit ngay
+  lúc được import.
+- **`requirements.txt` chỉ có `fastapi`.** Vercel gói mọi thứ đọc được lúc
+  build, nên để streamlit và pandas trong đó là cài cả trăm MB không dùng
+  tới. Phụ thuộc của bản Streamlit nằm trong `requirements-streamlit.txt`.
+  Hệ quả: bản Streamlit Cloud cũ sẽ không còn cài được streamlit — đúng ý
+  muốn, vì Vercel thay nó.
+- **`vercel.json` loại `tests/`, `docs/`, `data/` khỏi gói.** Không loại
+  `public/` — chính app Python phục vụ trang từ đó.
+
+### Vì sao API tự phục vụ luôn trang tĩnh
+
+Khi dự án dùng preset framework, Vercel định tuyến **mọi** request vào hàm
+Python. Nếu app không tự trả `public/index.html` thì `/` ra 404.
+
+Để app tự phục vụ còn được thêm một điều: chạy `uvicorn api.main:app` ở máy
+giống hệt lúc deploy — cùng một gốc cho cả trang lẫn API. Không có bước
+định tuyến nào chỉ tồn tại ở một nơi rồi hỏng ở nơi kia.
+
+### Trang chọn gốc API bằng cách thử, không đoán
+
+Trang chạy ở ba nơi: trên Vercel (cùng gốc với API), mở thẳng bằng file, và
+trong trình xem artifact. Hai nơi sau không cùng gốc nên phải gọi địa chỉ
+tuyệt đối.
+
+Thay vì đoán theo tên miền, trang gọi thử cùng gốc trước; hỏng thì mới dùng
+`API_FALLBACK`. Đoán theo tên miền là thứ sẽ sai ngay lần đầu dự án có tên
+miền riêng. Sau lần deploy đầu, sửa `API_FALLBACK` ở đầu phần script trong
+`public/index.html` thành tên miền thật.
 
 ## Giới hạn đã biết
 

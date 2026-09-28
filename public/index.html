@@ -1,19 +1,5 @@
 <!DOCTYPE html>
 <html lang="vi">
-<!--
-  ĐÓNG BĂNG — ĐỪNG SỬA FILE NÀY.
-
-  Đây là bản cũ, tự tính mọi thứ bằng JavaScript. Bản đang dùng là
-  public/index.html: nó không tính gì, chỉ gọi API Python ở api/main.py.
-
-  File này còn đây vì nó chạy được mà không cần máy chủ, nên vẫn là bản
-  demo dự phòng cho tới khi bản Vercel chạy ổn. Sửa công thức ở đây là tạo
-  lại đúng cái lỗi vừa bỏ đi: hai bản công thức, không ai biết bản nào
-  đúng.
-
-  Việc cần làm: khi bản Vercel đã chạy và kiểm xong, xoá file này và đăng
-  lại artifact từ public/index.html.
--->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -279,6 +265,17 @@ label.btn{display:inline-block}
 
 .foot{color:var(--on-desk-soft);font-size:12.5px;margin-top:30px;max-width:66ch}
 
+/* trạng thái API */
+.api-msg{
+  background:var(--warn-bg);color:var(--ink);
+  border-left:3px solid var(--stamp-red);
+  padding:11px 14px;margin:0 0 18px;font-size:13.5px;line-height:1.55;
+}
+.api-msg code{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+/* Hoá đơn mờ đi trong lúc chờ API, thay vì để số cũ đứng im như thật. */
+.receipt.busy{opacity:.55;transition:opacity .12s}
+@media (prefers-reduced-motion: reduce){.receipt.busy{transition:none}}
+
 /* help button + guide */
 .panel.has-help{position:relative}
 .panel.has-help > h2{padding-right:44px}
@@ -340,6 +337,8 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
     <button class="tab" role="tab" aria-selected="false" data-tab="weights">Cách tính điểm</button>
   </nav>
 
+  <p class="api-msg" id="apiMsg" role="status" aria-live="polite" hidden></p>
+
   <!-- ============ ĐÁNH GIÁ ============ -->
   <section id="tab-eval">
     <div class="split">
@@ -351,16 +350,7 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
           <legend>Món đồ</legend>
           <div class="row"><label for="name">Tên món</label><input type="text" id="name" value="Tai nghe chống ồn"></div>
           <div class="row"><label for="cat">Danh mục</label>
-            <select id="cat">
-              <option value="tech" selected>Công nghệ</option>
-              <option value="fashion">Thời trang</option>
-              <option value="edu">Giáo dục</option>
-              <option value="home">Đồ gia dụng</option>
-              <option value="sport">Thể thao</option>
-              <option value="beauty">Mỹ phẩm</option>
-              <option value="food">Ẩm thực</option>
-              <option value="other">Khác</option>
-            </select></div>
+            <select id="cat"></select></div>
           <div class="row"><label for="price">Giá bạn sẽ trả <span class="hint" id="priceHint"></span></label><input type="number" id="price" value="4500000" min="0" step="50000"></div>
           <div class="row"><label for="uses">Dự kiến dùng <span class="hint">số lần mỗi tháng</span></label><input type="number" id="uses" value="20" min="0" step="1"></div>
           <div class="row"><label for="months">Dùng được bao lâu <span class="hint">số tháng</span></label><input type="number" id="months" value="24" min="1" step="1"></div>
@@ -392,9 +382,7 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
               <option value="0.2">Vài giờ</option><option value="3">Vài ngày</option><option value="10" selected>1–2 tuần</option><option value="45">Hơn một tháng</option><option value="180">Nhiều tháng</option>
             </select></div>
           <div class="row"><label for="source">Biết đến nó từ đâu</label>
-            <select id="source">
-              <option value="sale">Thấy đang sale</option><option value="ad" selected>Quảng cáo trên mạng</option><option value="friend">Bạn bè dùng</option><option value="need">Nhu cầu tự phát sinh</option>
-            </select></div>
+            <select id="source"></select></div>
           <div class="row"><label for="owns">Đã có món làm được việc tương tự</label><input type="checkbox" id="owns"></div>
           <div class="row"><label for="desire">Mức độ thèm muốn</label><input type="range" id="desire" min="1" max="10" value="8"><output class="val" id="desireVal">8</output></div>
         </fieldset>
@@ -694,9 +682,60 @@ dialog.guide::backdrop{background:rgba(10,18,16,.55)}
 (function(){
 "use strict";
 
+/* =================================================================
+   Trang này KHÔNG tính gì cả.
+
+   Mọi con số trên hoá đơn đều do API Python trả về (api/main.py, gọi vào
+   src/). Trước đây trang tự tính bằng JavaScript, nghĩa là mỗi công thức
+   có hai bản — một trong src/scoring.py, một ở đây — và hai bản thì sớm
+   muộn cũng lệch nhau mà không ai biết bản nào đúng.
+
+   Việc của file này chỉ còn ba thứ: đọc ô nhập, gửi đi, vẽ lại.
+   ================================================================= */
+
+
+/* ================= nơi gọi API =================
+
+   Trang chạy ở ba nơi: trên Vercel (cùng gốc với API), mở thẳng bằng file,
+   và trong trình xem artifact của claude.ai. Hai nơi sau không cùng gốc
+   nên phải gọi địa chỉ tuyệt đối.
+
+   Thay vì đoán theo tên miền, thử thật: gọi cùng gốc trước, hỏng thì mới
+   dùng địa chỉ dự phòng. Đoán theo tên miền là thứ sẽ sai ngay lần đầu có
+   tên miền riêng. */
+
+var API_FALLBACK = 'https://just-buy-it.vercel.app';   /* sửa sau lần deploy đầu */
+var API = null;          /* gốc đang dùng, do boot() chọn */
+var META = null;         /* từ vựng giao diện, nạp một lần lúc mở trang */
+
+function apiUrl(path){ return (API === null ? '' : API) + path; }
+
+function apiGet(path){
+  return fetch(apiUrl(path), { headers: { 'Accept': 'application/json' } })
+    .then(readJson);
+}
+function apiPost(path, body){
+  return fetch(apiUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).then(readJson);
+}
+function readJson(res){
+  if(!res.ok){
+    return res.text().then(function(t){
+      var e = new Error('HTTP ' + res.status);
+      e.status = res.status; e.body = t;
+      throw e;
+    });
+  }
+  return res.json();
+}
+
+
 /* ================= helpers ================= */
 var fmt = new Intl.NumberFormat('vi-VN');
-function vnd(n){ return fmt.format(Math.round(n)) + ' \u20AB'; }
+function vnd(n){ return n == null ? '—' : fmt.format(Math.round(n)) + ' ₫'; }
 function el(id){ return document.getElementById(id); }
 function num(id){ var v = parseFloat(el(id).value); return isFinite(v) ? v : 0; }
 function optNum(id){ var s = el(id).value; if(s === '') return null; var v = parseFloat(s); return isFinite(v) ? v : null; }
@@ -704,8 +743,13 @@ function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function safeUrl(u){ u = (u || '').trim(); return /^https?:\/\/\S+$/i.test(u) ? u : ''; }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function dec1(n){ return n == null ? '—' : n.toFixed(1).replace('.', ','); }
+function pct(n){ return n == null ? '—' : Math.round(n * 100) + '%'; }
+
+/* null từ API nghĩa là "không tính được" (bên Python là vô hạn), khác hẳn
+   với 0. Hiển thị lẫn hai thứ thì hoá đơn báo món đồ miễn phí. */
 function duration(h){
-  if(!isFinite(h)) return '—';
+  if(h == null) return '—';
   if(h < 1) return 'dưới 1 giờ';
   if(h < 24) return Math.round(h) + ' giờ';
   var d = Math.floor(h / 24), r = Math.round(h - d * 24);
@@ -714,23 +758,15 @@ function duration(h){
 function when(iso){ return new Date(iso).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'}); }
 var HOUR = 3600000, DAY = 86400000;
 
-/* ================= storage ================= */
-function loadJSON(k, f){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : f; } catch(e){ return f; } }
-function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
-var K_ITEMS = 'justbuyit.items.v2', K_W = 'justbuyit.weights.v1', K_THEME = 'justbuyit.theme';
 
-/* Trang này chạy ở hai nơi khác hẳn nhau, và phải nói thật về nơi nó đang
-   chạy:
+/* ================= nơi trang đang chạy =================
 
-   - Mở thẳng file (kho mã, máy mình): localStorage dùng được, thẻ
+   - Mở thẳng file hoặc trên Vercel: localStorage dùng được, thẻ
      <a download> tải file được.
-   - Mở qua trình xem artifact của claude.ai: trang bị đóng khung, KHÔNG
-     lưu được vào localStorage và <a download> không làm gì cả. Tải file
-     phải đi qua claude.use('downloads'), còn dữ liệu chỉ sống đến lúc tải
-     lại trang.
+   - Trong trình xem artifact: trang bị đóng khung, KHÔNG lưu được vào
+     localStorage và <a download> không làm gì cả.
 
-   Dò bằng cách thử ghi thật, vì đoán theo tên trình duyệt hay theo việc
-   có window.claude hay không đều sai được. */
+   Dò bằng cách thử ghi thật, vì đoán theo tên trình duyệt đều sai được. */
 var CAN_STORE = (function(){
   try{
     localStorage.setItem('justbuyit.probe', '1');
@@ -742,92 +778,19 @@ var CAN_STORE = (function(){
 var FRAMED = !!(window.claude && typeof window.claude.use === 'function');
 var savePromise = FRAMED ? window.claude.use('downloads') : null;
 
-/* ================= the model ================= */
-var DEFAULTS = {
-  strain:  { share:35, cpu:25, cover:25, hours:15 },
-  impulse: { recency:30, source:20, owns:15, desire:15, urgency:15, night:5 },
-  threshold: 40, refCpu: 35000, defaultHalfLife: 10
-};
+function loadJSON(k, f){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : f; } catch(e){ return f; } }
+function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+var K_ITEMS = 'justbuyit.items.v2', K_W = 'justbuyit.weights.v2', K_THEME = 'justbuyit.theme';
 
-var FACTORS = {
-  strain: [
-    { k:'share',  label:'Phần tiền dư mỗi tháng', short:'tiền dư',       how:'Giá ÷ tiền dư hàng tháng, tối đa ở 100%. Món bằng nửa tháng tiền dư thì được 0,5.' },
-    { k:'cpu',    label:'Giá mỗi lần dùng',        short:'mỗi lần dùng',  how:'c ÷ (c + mốc). Bằng mốc thì 0,5; đắt gấp ba mốc thì 0,75.' },
-    { k:'cover',  label:'Tiền đang có',            short:'tiền đang có',  how:'Có ít hơn giá món: 1. Có gấp đôi: 0,5. Gấp bốn: 0,25.' },
-    { k:'hours',  label:'Số giờ đi làm',           short:'giờ làm',       how:'h ÷ (h + 40). Đúng một tuần làm việc thì 0,5.' }
-  ],
-  impulse: [
-    { k:'recency', label:'Mới muốn gần đây',        short:'mới muốn',      how:'0,5 mũ (số ngày ÷ 7). Muốn từ hôm nay gần 1; sau một tuần còn 0,5.' },
-    { k:'source',  label:'Nguồn biết đến',          short:'nguồn',         how:'Sale 1 · quảng cáo 0,8 · bạn bè 0,4 · tự có nhu cầu 0.' },
-    { k:'owns',    label:'Đã có món thay thế',      short:'đã có món khác',how:'Có thì 1, không thì 0.' },
-    { k:'desire',  label:'Thèm muốn quá mức',       short:'thèm muốn',     how:'(điểm − 5) ÷ 5. Từ 5/10 trở xuống là 0; 10/10 là 1.' },
-    { k:'urgency', label:'Áp lực hết hạn giảm giá', short:'sắp hết sale',  how:'Sale hết trong 7 ngày: 1 − giờ còn lại ÷ 168. Càng sát hạn càng gần 1.' },
-    { k:'night',   label:'Đang cân nhắc lúc khuya', short:'giờ khuya',     how:'Từ 22 giờ đến 5 giờ sáng thì 1.' }
-  ]
-};
 
-var SOURCE_VAL = { sale:1, ad:.8, friend:.4, need:0 };
+/* ================= trạng thái =================
 
-var W = (function(){
-  var s = loadJSON(K_W, null), w = clone(DEFAULTS);
-  if(s){
-    ['strain','impulse'].forEach(function(g){ if(s[g]) Object.keys(w[g]).forEach(function(k){ if(isFinite(s[g][k])) w[g][k] = s[g][k]; }); });
-    ['threshold','refCpu','defaultHalfLife'].forEach(function(k){ if(isFinite(s[k])) w[k] = s[k]; });
-  }
-  return w;
-})();
-
-/* Lịch giảm giá theo danh mục. Dữ liệu tham khảo, gom từ các đợt sale định kỳ
-   của sàn thương mại điện tử Việt Nam — không phải dự báo giá. */
-var D66 = [6, 6, 'Ngày đôi 6/6'], D99 = [9, 9, 'Ngày đôi 9/9'],
-    D1111 = [11, 11, 'Ngày đôi 11/11'], D1212 = [12, 12, 'Ngày đôi 12/12'];
-var CATS = {
-  tech:    { label:'Công nghệ',   days:[D99, D1111, D1212], bf:true,
-             note:'Đời cũ giảm mạnh nhất ngay sau khi hãng ra mẫu mới, thường vào tháng 9–10.' },
-  fashion: { label:'Thời trang',  days:[[3,1,'Xả hàng cuối mùa đông'], [9,1,'Xả hàng cuối mùa hè'], D1111, D1212], bf:true,
-             note:'Rẻ nhất vào cuối mùa, khoảng tháng 3 và tháng 9, khi cửa hàng xả đồ tồn.' },
-  edu:     { label:'Giáo dục',    days:[[8,15,'Ưu đãi đầu năm học'], [1,1,'Ưu đãi đầu năm mới'], D1111], bf:false,
-             note:'Khoá học hay giảm vào đầu năm học (tháng 8–9) và đầu năm mới.' },
-  home:    { label:'Đồ gia dụng', days:[D66, D1111, D1212], bf:true,
-             note:'Đồ gia dụng lớn giảm sâu vào các ngày đôi và dịp cuối năm.' },
-  sport:   { label:'Thể thao',    days:[[8,15,'Xả hàng cuối hè'], D1111], bf:true,
-             note:'Đồ tập hay tăng giá vào tháng 1 vì ai cũng quyết tâm đầu năm. Cuối hè rẻ hơn.' },
-  beauty:  { label:'Mỹ phẩm',     days:[[3,8,'Ưu đãi 8/3'], D1111, D1212], bf:false,
-             note:'Hay có mã giảm sâu vào 8/3 và các ngày đôi; để ý hạn sử dụng khi giá quá rẻ.' },
-  food:    { label:'Ẩm thực',     days:[[12,20,'Mùa lễ cuối năm'], D1111], bf:false,
-             note:'Đồ ăn ít giảm giá theo đợt; mua theo nhu cầu thay vì chờ sale.' },
-  other:   { label:'Khác',        days:[D66, D1111, D1212], bf:false,
-             note:'Các ngày đôi là mốc giảm giá đáng chờ nhất trên sàn.' }
-};
-
-/* Black Friday: thứ Sáu ngay sau thứ Năm thứ tư của tháng 11 */
-function blackFriday(year){
-  var d = new Date(year, 10, 1), count = 0;
-  while(d.getMonth() === 10){
-    if(d.getDay() === 4){ count++; if(count === 4) break; }
-    d.setDate(d.getDate() + 1);
-  }
-  return new Date(year, 10, d.getDate() + 1);
-}
-
-function nextSaleWindow(catKey){
-  var cat = CATS[catKey] || CATS.other, now = new Date(), best = null;
-  var cands = [];
-  [0, 1].forEach(function(dy){
-    var y = now.getFullYear() + dy;
-    cat.days.forEach(function(md){
-      cands.push({ name: md[2], when: new Date(y, md[0] - 1, md[1]) });
-    });
-    if(cat.bf) cands.push({ name:'Black Friday', when: blackFriday(y) });
-  });
-  cands.forEach(function(c){
-    var days = Math.ceil((c.when - now) / DAY);
-    if(days >= 0 && (!best || days < best.days)) best = { name:c.name, when:c.when, days:days };
-  });
-  return best;
-}
-
+   W có đúng hình dạng mà API nhận, để gửi đi không phải dịch tên trường.
+   Giá trị mặc định lấy từ /api/meta, không viết cứng ở đây. */
 var items = loadJSON(K_ITEMS, []);
+var W = null;
+var LAST = null;          /* phản hồi /api/evaluate gần nhất */
+
 var offers = [
   { store:'Shopee', url:'', price:4500000 },
   { store:'Tiki',   url:'', price:4690000 }
@@ -838,287 +801,287 @@ var goals = [
   { name:'Chuyến đi Đà Lạt',      amount:5000000 }
 ];
 
+
+/* ================= báo lỗi API ================= */
+function apiDown(err){
+  var p = el('apiMsg');
+  var dia = API === null ? '(chưa chọn được)' : (API || location.origin);
+  var vi_sao = err && err.status
+    ? 'Máy chủ trả về lỗi ' + err.status + '.'
+    : 'Không gọi được tới máy chủ.';
+  p.innerHTML = '<b>Chưa tính được.</b> ' + esc(vi_sao) +
+    ' Trang này chỉ hiển thị, toàn bộ phép tính nằm ở API Python tại <code>' +
+    esc(dia) + '</code>. Kiểm tra API đã chạy chưa, rồi tải lại trang.';
+  p.hidden = false;
+}
+function apiOk(){ el('apiMsg').hidden = true; }
+
+
+/* ================= dựng giao diện từ /api/meta =================
+
+   Nhãn danh mục, nhãn nguồn, tên và công thức của từng yếu tố đều nằm
+   trong src/ của Python. Nạp từ đó thay vì chép lại ở đây, nên sửa một
+   nhãn bên Python là giao diện đổi theo. */
+function buildFromMeta(){
+  var cat = el('cat');
+  cat.innerHTML = META.categories.map(function(c){
+    return '<option value="' + esc(c.key) + '">' + esc(c.label) + '</option>';
+  }).join('');
+  cat.value = 'tech';
+
+  var src = el('source');
+  src.innerHTML = META.sources.map(function(s){
+    return '<option value="' + esc(s.key) + '">' + esc(s.label) + '</option>';
+  }).join('');
+  src.value = 'ad';
+}
+
+
+/* ================= đọc ô nhập ================= */
 function readInputs(){
   var saleOn = el('saleOn').checked;
   var left = num('saleLeft');
   return {
-    name: el('name').value.trim() || 'Món chưa đặt tên',
-    cat: el('cat').value,
-    price: num('price'), uses: num('uses'), months: num('months'),
-    income: num('income'), fixed: num('fixed'), savings: num('savings'),
-    wanted: parseFloat(el('wanted').value), source: el('source').value,
-    owns: el('owns').checked, desire: num('desire'),
-    usedPrice: optNum('altUsed'),
+    item: {
+      name: el('name').value.trim() || 'Món chưa đặt tên',
+      category: el('cat').value || 'other',
+      price: num('price'),
+      uses_per_month: num('uses'),
+      months: num('months'),
+      wanted_days: parseFloat(el('wanted').value),
+      source: el('source').value || 'need',
+      owns_similar: el('owns').checked,
+      desire: num('desire'),
+      used_price: optNum('altUsed')
+    },
     sale: {
       on: saleOn,
-      list: optNum('listPrice'),
-      hoursLeft: saleOn ? (el('saleUnit').value === 'd' ? left * 24 : left) : Infinity,
-      low30: optNum('low30')
-    }
+      list_price: optNum('listPrice'),
+      /* Bỏ trống nghĩa là không có hạn. Gửi null chứ không gửi 0: 0 giờ
+         nghĩa là sale sắp hết tới nơi, tức ngược hẳn ý nghĩa. */
+      hours_left: saleOn && el('saleLeft').value !== ''
+        ? (el('saleUnit').value === 'd' ? left * 24 : left) : null,
+      low_30d: optNum('low30')
+    },
+    alternatives: {
+      used: optNum('altUsed'),
+      rent: optNum('altRent'),
+      borrow: optNum('altBorrow')
+    },
+    finances: {
+      income: num('income'),
+      fixed_costs: num('fixed'),
+      savings: num('savings')
+    },
+    weights: W,
+    goals: goals.filter(function(g){ return g.name && g.amount > 0; })
+                .map(function(g){ return { name: g.name, amount: g.amount }; }),
+    rating_series: items.map(function(it){ return it.ratings || []; })
+                        .filter(function(r){ return r.length > 1; })
   };
 }
 
-function metrics(d){
-  var totalUses = d.uses * d.months;
-  var disc = Math.max(d.income - d.fixed, 0);
-  var hourly = d.income / 176;
-  var m = {
-    totalUses: totalUses,
-    costPerUse: totalUses > 0 ? d.price / totalUses : Infinity,
-    workHours: hourly > 0 ? d.price / hourly : Infinity,
-    discretionary: disc,
-    shareDisc: disc > 0 ? d.price / disc : Infinity,
-    coverage: d.price > 0 ? d.savings / d.price : Infinity,
-    monthsToRebuild: disc > 0 ? d.price / disc : Infinity,
-    opp5y: d.price * Math.pow(1.06, 5),
-    discount: 0, discountPct: 0, fake: false, vsLow30: null
-  };
-  if(d.sale.on && d.sale.list && d.sale.list > d.price){
-    m.discount = d.sale.list - d.price;
-    m.discountPct = m.discount / d.sale.list;
-  }
-  if(d.sale.on && d.sale.low30 != null && d.sale.low30 > 0){
-    m.vsLow30 = (d.sale.low30 - d.price) / d.sale.low30;
-    m.fake = d.price >= d.sale.low30;
-  }
-  return m;
+
+/* ================= vòng gọi API =================
+
+   Hoá đơn cập nhật theo từng lần gõ, nhưng mỗi lần gõ mà gọi một lần thì
+   vừa tốn vừa loạn thứ tự. Nên: gom 180ms, và đánh số thứ tự để phản hồi
+   về muộn của lần gõ cũ không ghi đè kết quả của lần gõ mới. */
+var timer = null, seq = 0;
+
+function scheduleEvaluate(){
+  if(!W) return;                      /* chưa nạp xong meta */
+  clearTimeout(timer);
+  el('receipt').classList.add('busy');
+  timer = setTimeout(evaluateNow, 180);
 }
 
-function strainFactors(d, m){
-  var c = m.costPerUse, h = m.workHours;
-  return {
-    share: isFinite(m.shareDisc) ? clamp(m.shareDisc, 0, 1) : 1,
-    cpu:   isFinite(c) ? c / (c + W.refCpu) : 1,
-    cover: m.coverage <= 1 ? 1 : (isFinite(m.coverage) ? 1 / m.coverage : 0),
-    hours: isFinite(h) ? h / (h + 40) : 1
-  };
-}
-
-function impulseFactors(d){
-  var hr = new Date().getHours();
-  var hl = d.sale.hoursLeft;
-  return {
-    recency: Math.pow(.5, d.wanted / 7),
-    source:  SOURCE_VAL[d.source] || 0,
-    owns:    d.owns ? 1 : 0,
-    desire:  clamp((d.desire - 5) / 5, 0, 1),
-    urgency: d.sale.on && isFinite(hl) && hl < 168 ? clamp(1 - hl / 168, 0, 1) : 0,
-    night:   (hr >= 22 || hr < 5) ? 1 : 0
-  };
-}
-
-function scoreOf(group, f){
-  var w = W[group], tot = 0, sum = 0, parts = [];
-  FACTORS[group].forEach(function(x){ tot += Math.max(0, +w[x.k] || 0); });
-  FACTORS[group].forEach(function(x){
-    var wi = Math.max(0, +w[x.k] || 0);
-    var p = tot > 0 ? wi * f[x.k] / tot * 100 : 0;
-    sum += p;
-    parts.push({ k:x.k, short:x.short, pts:p });
+function evaluateNow(){
+  var mine = ++seq;
+  var body = readInputs();
+  syncLocalHints(body);
+  apiPost('/api/evaluate', body).then(function(d){
+    if(mine !== seq) return;          /* đã có lần gõ mới hơn */
+    apiOk();
+    LAST = d;
+    el('receipt').classList.remove('busy');
+    renderReceipt(d);
+    renderAlts(d);
+    renderGoalBars(body);
+    renderPreview(d);
+    updateHalfLifeNote(d);
+  }).catch(function(err){
+    if(mine !== seq) return;
+    el('receipt').classList.remove('busy');
+    apiDown(err);
   });
-  parts.sort(function(a,b){ return b.pts - a.pts; });
-  return { score: Math.round(clamp(sum, 0, 100)), parts: parts };
 }
 
-var VERDICTS = {
-  buy:  { cls:'buy',  title:'MUA ĐI',       sub:'đã cân nhắc kỹ', note:'Vừa túi tiền, vừa không phải quyết định vội. Không có lý do gì để chần chừ.' },
-  wait: { cls:'wait', title:'CHỜ ĐÃ',       sub:'7 ngày',          note:'Tiền thì ổn, nhưng bạn đang muốn nó theo kiểu bốc đồng. Ghi vào danh sách chờ rồi chấm lại sau.' },
-  plan: { cls:'plan', title:'LÊN KẾ HOẠCH', sub:'để dành trước',   note:'Món này đáng nhưng đang quá nặng so với tiền dư của bạn. Để dành rồi mua, đừng bóp phần còn lại của tháng.' },
-  no:   { cls:'no',   title:'ĐỪNG MUA',     sub:'chưa phải lúc',   note:'Vừa nặng tiền vừa quyết định vội. Đây đúng là kiểu mua mà tuần sau sẽ tiếc.' }
-};
-function verdictFor(s, i){
-  var t = W.threshold, hs = s >= t, hi = i >= t;
-  return hs && hi ? VERDICTS.no : hs ? VERDICTS.plan : hi ? VERDICTS.wait : VERDICTS.buy;
+/* Vài thứ thuần hiển thị, không cần chờ API: hiện số tiền cho dễ đọc, và
+   ẩn/hiện khối giảm giá. */
+function syncLocalHints(body){
+  el('saleBox').hidden = !body.sale.on;
+  el('priceHint').textContent = vnd(body.item.price);
+  el('listHint').textContent = body.sale.list_price ? vnd(body.sale.list_price) : '';
+  el('incomeHint').textContent = vnd(body.finances.income);
+  el('savingsHint').textContent = vnd(body.finances.savings);
+  el('desireVal').textContent = body.item.desire;
+  el('altNew').value = body.item.price;
 }
 
-/* Giá mục tiêu: mức giá cao nhất mà điểm áp lực tài chính vẫn dưới ngưỡng.
-   Điểm áp lực tăng đơn điệu theo giá, nên tìm bằng chia đôi khoảng (binary search). */
-function targetPrice(d){
-  var here = scoreOf('strain', strainFactors(d, metrics(d))).score;
-  if(here < W.threshold) return { needed:false, now:here };
 
-  function scoreAt(p){
-    var t = clone(d); t.price = p;
-    return scoreOf('strain', strainFactors(t, metrics(t))).score;
-  }
-  if(scoreAt(0) >= W.threshold) return { needed:true, now:here, impossible:true };
-
-  var lo = 0, hi = d.price;
-  for(var i = 0; i < 40; i++){
-    var mid = (lo + hi) / 2;
-    if(scoreAt(mid) < W.threshold) lo = mid; else hi = mid;
-  }
-  return { needed:true, now:here, price:lo, cut:d.price > 0 ? (d.price - lo) / d.price : 0 };
-}
-
-function halfLifeInfo(){
-  var hl = [];
-  items.forEach(function(it){
-    if(!it.ratings || it.ratings.length < 2) return;
-    var f = it.ratings[0], l = it.ratings[it.ratings.length - 1];
-    var ratio = l.v / f.v;
-    var days = (new Date(l.t) - new Date(f.t)) / DAY;
-    if(ratio > 0 && ratio < 1 && days > 0) hl.push(days * Math.LN2 / -Math.log(ratio));
-  });
-  if(hl.length) return { days: hl.reduce(function(a,b){ return a + b; }, 0) / hl.length, fromData: true, n: hl.length };
-  return { days: W.defaultHalfLife, fromData: false, n: 0 };
-}
-
-function saleAdvice(d, m){
-  if(!d.sale.on || !isFinite(d.sale.hoursLeft) || !m.discount) return null;
-  var H = halfLifeInfo();
-  var p7 = clamp(d.desire * Math.pow(.5, 7 / H.days) / 10, 0, 1);
-  var recover = d.usedPrice != null ? Math.min(d.usedPrice, d.price) : 0;
-  return {
-    hrs: d.sale.hoursLeft, within7: d.sale.hoursLeft < 168, p7: p7, H: H, recover: recover,
-    waitLoss: m.discount * p7,
-    buyLoss: (d.price - recover) * (1 - p7)
-  };
-}
-
-/* ================= render: receipt ================= */
+/* ================= vẽ hoá đơn ================= */
 var lastVerdict = null;
-var UNITS = [{n:'bát phở',p:50000},{n:'ly cà phê',p:35000},{n:'tháng Spotify',p:59000},{n:'lần đổ xăng',p:80000}];
 
 function partsText(parts){
-  var top = parts.filter(function(p){ return p.pts >= 1; }).slice(0, 3);
-  return top.length ? top.map(function(p){ return p.short + ' +' + Math.round(p.pts); }).join(' · ') : 'không yếu tố nào đáng kể';
+  if(!parts || !parts.length) return 'không yếu tố nào đáng kể';
+  return parts.map(function(p){ return p.short + ' +' + Math.round(p.points); }).join(' · ');
 }
 
-function render(){
-  var d = readInputs(), m = metrics(d);
+function renderReceipt(d){
+  var m = d.metrics;
+  el('rName').textContent = el('name').value.trim() || 'Món chưa đặt tên';
+  el('rPrice').textContent = vnd(num('price'));
 
-  el('saleBox').hidden = !d.sale.on;
-  el('priceHint').textContent = vnd(d.price);
-  el('listHint').textContent = d.sale.list ? vnd(d.sale.list) : '';
-  el('incomeHint').textContent = vnd(d.income);
-  el('savingsHint').textContent = vnd(d.savings);
-  el('desireVal').textContent = d.desire;
-
-  el('rName').textContent = d.name;
-  el('rPrice').textContent = vnd(d.price);
-
-  /* sale block */
+  /* khối giảm giá */
   var s = '';
-  if(d.sale.on){
+  if(el('saleOn').checked){
     if(m.discount){
-      s += '<div class="r-line"><span>Giá gốc</span><span>' + vnd(d.sale.list) + '</span></div>';
-      s += '<div class="r-line r-good"><span>Giảm</span><span>−' + vnd(m.discount) + ' (' + Math.round(m.discountPct*100) + '%)</span></div>';
-    } else if(d.sale.list){
+      s += '<div class="r-line"><span>Giá gốc</span><span>' + vnd(optNum('listPrice')) + '</span></div>';
+      s += '<div class="r-line r-good"><span>Giảm</span><span>−' + vnd(m.discount) + ' (' + pct(m.discount_pct) + ')</span></div>';
+    } else if(optNum('listPrice')){
       s += '<div class="r-warn">Giá "sale" không thấp hơn giá gốc bạn nhập.</div>';
     }
-    if(m.vsLow30 != null){
-      s += m.fake
+    if(m.vs_low_30d != null){
+      s += m.fake_discount
         ? '<div class="r-warn">Giá này không rẻ hơn mức thấp nhất trong 30 ngày qua. Đợt giảm có thể chỉ là tăng giá gốc lên rồi giảm lại.</div>'
-        : '<div class="r-line"><span>So với đáy 30 ngày</span><span class="r-good">rẻ hơn ' + Math.round(m.vsLow30*100) + '%</span></div>';
+        : '<div class="r-line"><span>So với đáy 30 ngày</span><span class="r-good">rẻ hơn ' + pct(m.vs_low_30d) + '</span></div>';
     }
-    if(isFinite(d.sale.hoursLeft)){
-      s += '<div class="r-line"><span>Sale hết sau</span><span' + (d.sale.hoursLeft < 24 ? ' class="r-bad"' : '') + '>' + duration(d.sale.hoursLeft) + '</span></div>';
+    var a = d.sale_advice;
+    if(a && a.hours_left != null){
+      s += '<div class="r-line"><span>Sale hết sau</span><span' + (a.hours_left < 24 ? ' class="r-bad"' : '') + '>' + duration(a.hours_left) + '</span></div>';
     }
-    var a = saleAdvice(d, m);
-    if(a && a.within7 && !m.fake){
+    if(a && a.ends_within_cooling && !m.fake_discount){
       s += '<div class="r-advice">';
-      if(a.hrs >= 24){
-        s += '<p>Không cần mua ngay. Chờ đến <b>ngày cuối đợt sale</b> vẫn giữ nguyên mức giảm, và bạn có thêm ' + duration(a.hrs - 6) + ' để nguội.</p>';
-      } else {
-        s += '<p>Sale hết trong chưa đầy một ngày, không còn thời gian để chờ.</p>';
-      }
-      s += '<p>Nếu phải chọn giữa chờ đủ 7 ngày và mua trong đợt sale:</p>';
-      s += '<div class="r-line"><span>Chờ, mất đợt giảm</span><span>thiệt ~' + vnd(a.waitLoss) + '</span></div>';
-      s += '<div class="r-line"><span>Mua, rồi tiếc</span><span>thiệt ~' + vnd(a.buyLoss) + '</span></div>';
-      s += '<p class="r-sub" style="margin:4px 0 6px">khả năng tuần sau vẫn muốn ≈ ' + Math.round(a.p7*100) + '% (bán rã ' + Math.round(a.H.days) + ' ngày' + (a.H.fromData ? ', từ dữ liệu của bạn' : ', mặc định') + ') · bán lại được ' + vnd(a.recover) + '</p>';
-      s += '<p><b>' + (a.waitLoss <= a.buyLoss ? 'Chờ vẫn lợi hơn, kể cả khi lỡ mất đợt sale.' : 'Mức giảm đủ lớn để mua trong đợt này — nhưng vào ngày cuối.') + '</b></p>';
+      s += a.hours_left >= 24
+        ? '<p>Không cần mua ngay. Chờ đến <b>ngày cuối đợt sale</b> vẫn giữ nguyên mức giảm, và bạn có thêm ' + duration(a.hours_left - 6) + ' để nguội.</p>'
+        : '<p>Sale hết trong chưa đầy một ngày, không còn thời gian để chờ.</p>';
+      s += '<p>Nếu phải chọn giữa chờ cho nguội và mua trong đợt sale:</p>';
+      s += '<div class="r-line"><span>Chờ, mất đợt giảm</span><span>thiệt ~' + vnd(a.wait_loss) + '</span></div>';
+      s += '<div class="r-line"><span>Mua, rồi tiếc</span><span>thiệt ~' + vnd(a.buy_loss) + '</span></div>';
+      s += '<p class="r-sub" style="margin:4px 0 6px">khả năng sau này vẫn muốn ≈ ' + pct(a.p_still_want) +
+           ' (bán rã ' + Math.round(d.half_life.days) + ' ngày' + (d.half_life.from_data ? ', từ dữ liệu của bạn' : ', mặc định') +
+           ') · bán lại được ' + vnd(a.resale_value) + '</p>';
+      s += '<p><b>' + esc(a.recommendation) + '</b></p>';
       s += '</div>';
     }
   }
   el('rSale').innerHTML = s;
 
-  if(isFinite(m.costPerUse)){
-    el('rCpu').textContent = vnd(m.costPerUse);
-    el('rCpuSub').textContent = fmt.format(d.uses) + ' lần/tháng \u00D7 ' + fmt.format(d.months) + ' tháng = ' + fmt.format(m.totalUses) + ' lần';
-  } else { el('rCpu').textContent = '\u221E'; el('rCpuSub').textContent = 'bạn chưa cho biết sẽ dùng bao nhiêu lần'; }
+  if(m.cost_per_use != null){
+    el('rCpu').textContent = vnd(m.cost_per_use);
+    el('rCpuSub').textContent = fmt.format(num('uses')) + ' lần/tháng × ' +
+      fmt.format(num('months')) + ' tháng = ' + fmt.format(m.total_uses) + ' lần';
+  } else {
+    el('rCpu').textContent = '∞';
+    el('rCpuSub').textContent = 'bạn chưa cho biết sẽ dùng bao nhiêu lần';
+  }
 
-  if(isFinite(m.workHours)){ el('rHours').textContent = fmt.format(Math.round(m.workHours)) + ' giờ'; el('rHoursSub').textContent = '≈ ' + (m.workHours/8).toFixed(1).replace('.', ',') + ' ngày công'; }
-  else { el('rHours').textContent = '—'; el('rHoursSub').textContent = 'chưa nhập thu nhập'; }
+  if(m.work_hours != null){
+    el('rHours').textContent = fmt.format(Math.round(m.work_hours)) + ' giờ';
+    el('rHoursSub').textContent = '≈ ' + dec1(m.work_hours / 8) + ' ngày công';
+  } else {
+    el('rHours').textContent = '—';
+    el('rHoursSub').textContent = 'chưa nhập thu nhập';
+  }
 
-  if(isFinite(m.shareDisc)){
-    el('rShare').textContent = Math.round(m.shareDisc*100) + '%';
-    el('rShareSub').textContent = 'tiền dư ' + vnd(m.discretionary) + '/tháng · ' + m.monthsToRebuild.toFixed(1).replace('.', ',') + ' tháng để bù lại';
-  } else { el('rShare').textContent = 'không còn dư'; el('rShareSub').textContent = 'chi phí cố định đã bằng hoặc vượt thu nhập'; }
+  if(m.share_discretionary != null){
+    el('rShare').textContent = pct(m.share_discretionary);
+    el('rShareSub').textContent = 'tiền dư ' + vnd(m.discretionary) + '/tháng · ' +
+      dec1(m.months_to_rebuild) + ' tháng để bù lại';
+  } else {
+    el('rShare').textContent = 'không còn dư';
+    el('rShareSub').textContent = 'chi phí cố định đã bằng hoặc vượt thu nhập';
+  }
 
-  el('rCover').textContent = isFinite(m.coverage) ? m.coverage.toFixed(1).replace('.', ',') + ' lần' : '—';
-  el('rOpp').textContent = vnd(m.opp5y);
+  el('rCover').textContent = m.coverage != null ? dec1(m.coverage) + ' lần' : '—';
+  el('rOpp').textContent = vnd(m.opportunity_5y);
 
-  var u = '';
-  UNITS.forEach(function(x){ var q = Math.round(d.price / x.p); if(q >= 1) u += '<div class="r-line"><span>' + x.n + '</span><span>' + fmt.format(q) + '</span></div>'; });
-  el('rUnits').innerHTML = u || '<div class="r-sub">giá quá nhỏ để quy đổi</div>';
+  el('rUnits').innerHTML = d.units.length
+    ? d.units.map(function(u){
+        return '<div class="r-line"><span>' + esc(u.name) + '</span><span>' + fmt.format(u.quantity) + '</span></div>';
+      }).join('')
+    : '<div class="r-sub">giá quá nhỏ để quy đổi</div>';
 
-  var g = '';
-  goals.filter(function(x){ return x.name && x.amount > 0; }).forEach(function(x){
-    var ratio = x.amount > 0 ? d.price / x.amount : 0;
-    g += '<div class="r-line"><span>' + esc(x.name) + '</span><span>' +
-         (ratio >= 1 ? fmt.format(Math.round(ratio * 10) / 10).replace('.', ',') + ' lần' : Math.round(ratio * 100) + '%') +
-         '</span></div>';
-  });
-  el('rGoals').innerHTML = g ? '<div class="r-sub" style="margin:6px 0 2px">so với việc khác bạn muốn làm</div>' + g : '';
+  el('rGoals').innerHTML = d.goals.length
+    ? '<div class="r-sub" style="margin:6px 0 2px">so với việc khác bạn muốn làm</div>' +
+      d.goals.map(function(g){
+        return '<div class="r-line"><span>' + esc(g.name) + '</span><span>' +
+               (g.ratio >= 1 ? dec1(g.ratio) + ' lần' : pct(g.ratio)) + '</span></div>';
+      }).join('')
+    : '';
 
-  var st = scoreOf('strain', strainFactors(d, m));
-  var im = scoreOf('impulse', impulseFactors(d));
-  el('rStrainN').textContent = st.score + '/100';
-  el('rImpulseN').textContent = im.score + '/100';
-  el('rStrainBar').style.width = st.score + '%';
-  el('rImpulseBar').style.width = im.score + '%';
-  el('thr1').style.left = W.threshold + '%';
-  el('thr2').style.left = W.threshold + '%';
-  el('rStrainParts').textContent = partsText(st.parts);
-  el('rImpulseParts').textContent = partsText(im.parts);
+  el('rStrainN').textContent = d.strain.value + '/100';
+  el('rImpulseN').textContent = d.impulse.value + '/100';
+  el('rStrainBar').style.width = d.strain.value + '%';
+  el('rImpulseBar').style.width = d.impulse.value + '%';
+  el('thr1').style.left = d.threshold + '%';
+  el('thr2').style.left = d.threshold + '%';
+  el('rStrainParts').textContent = partsText(d.strain.parts);
+  el('rImpulseParts').textContent = partsText(d.impulse.parts);
 
   /* giá mục tiêu */
-  var tp = targetPrice(d), t = '';
-  if(!tp.needed){
-    t += '<div class="r-target"><span class="n r-ok">' + vnd(d.price) + '</span><span class="l">giá hiện tại đã trong tầm</span></div>';
-    t += '<div class="r-sub" style="text-align:center;margin-top:4px">áp lực tài chính ' + tp.now + ', dưới ngưỡng ' + W.threshold + '</div>';
-  } else if(tp.impossible){
-    t += '<div class="r-sub">Kể cả miễn phí thì món này vẫn vượt ngưỡng áp lực — tiền dư hằng tháng hoặc tiền đang có của bạn đang quá mỏng. Cần xem lại hai ô đó trước.</div>';
+  var t = d.target, h = '';
+  if(!t.needed){
+    h += '<div class="r-target"><span class="n r-ok">' + vnd(num('price')) + '</span><span class="l">giá hiện tại đã trong tầm</span></div>';
+    h += '<div class="r-sub" style="text-align:center;margin-top:4px">áp lực tài chính ' + t.current_score + ', dưới ngưỡng ' + d.threshold + '</div>';
+  } else if(t.impossible){
+    h += '<div class="r-sub">Kể cả miễn phí thì món này vẫn vượt ngưỡng áp lực — tiền dư hằng tháng hoặc tiền đang có của bạn đang quá mỏng. Cần xem lại hai ô đó trước.</div>';
   } else {
-    t += '<div class="r-target"><span class="n">' + vnd(tp.price) + '</span><span class="l">giá cần xuống dưới mức này</span></div>';
-    t += '<div class="r-line" style="margin-top:6px"><span>Tức là giảm thêm</span><span>' + Math.round(tp.cut * 100) + '% (' + vnd(d.price - tp.price) + ')</span></div>';
-    t += '<div class="r-sub">Đặt thông báo giá ở mức này. Dưới đó, áp lực tài chính của món rơi xuống dưới ngưỡng ' + W.threshold + '.</div>';
+    h += '<div class="r-target"><span class="n">' + vnd(t.price) + '</span><span class="l">giá cần xuống dưới mức này</span></div>';
+    h += '<div class="r-line" style="margin-top:6px"><span>Tức là giảm thêm</span><span>' + pct(t.cut) + ' (' + vnd(num('price') - t.price) + ')</span></div>';
+    h += '<div class="r-sub">Đặt thông báo giá ở mức này. Dưới đó, áp lực tài chính của món rơi xuống dưới ngưỡng ' + d.threshold + '.</div>';
   }
-  el('rTarget').innerHTML = t;
+  el('rTarget').innerHTML = h;
 
-  /* thời điểm mua theo danh mục */
-  var cat = CATS[d.cat] || CATS.other, win = nextSaleWindow(d.cat), ti = '';
+  /* thời điểm mua */
+  var ti = '', win = d.timing.window;
   if(win){
-    ti += '<div class="r-line"><span>' + win.name + '</span><span>' +
-          (win.days === 0 ? 'hôm nay' : 'còn ' + win.days + ' ngày') + '</span></div>';
-    if(win.days > 0 && win.days <= 60 && tp.needed && tp.cut != null && tp.cut <= .3){
-      ti += '<div class="r-sub r-good">Mức giảm ' + Math.round(tp.cut * 100) + '% bạn cần là trong tầm một đợt sale lớn. Chờ ' + win.days + ' ngày tới đợt này có thể vừa đủ.</div>';
-    } else if(win.days > 0 && win.days <= 60 && tp.needed){
-      ti += '<div class="r-sub">Cần giảm tới ' + Math.round((tp.cut || 0) * 100) + '%, sâu hơn mức một đợt sale thường có. Chờ sale không giải quyết được khoảng cách này — vấn đề là ngân sách, không phải giá.</div>';
-    } else if(win.days > 60){
-      ti += '<div class="r-sub">Còn xa, đừng lấy đó làm lý do trì hoãn nếu bạn thật sự cần món này.</div>';
-    }
+    ti += '<div class="r-line"><span>' + esc(win.name) + '</span><span>' +
+          (win.days_away === 0 ? 'hôm nay' : 'còn ' + win.days_away + ' ngày') + '</span></div>';
   }
-  ti += '<div class="r-sub" style="margin-top:4px">' + cat.note + '</div>';
+  if(d.timing.advice) ti += '<div class="r-sub" style="margin-top:4px">' + esc(d.timing.advice) + '</div>';
   el('rTiming').innerHTML = ti;
 
-  var v = verdictFor(st.score, im.score);
-  var sub = v.sub;
-  var saleSoon = d.sale.on && isFinite(d.sale.hoursLeft) && d.sale.hoursLeft < 168 && m.discount && !m.fake;
-  if(v.cls === 'wait' && saleSoon) sub = 'đến ngày cuối sale';
+  /* con dấu */
+  var v = d.verdict;
   var stamp = el('stamp');
-  stamp.className = 'stamp ' + v.cls;
-  stamp.innerHTML = '<b>' + v.title + '</b><small>' + sub + '</small>';
+  stamp.className = 'stamp ' + v.key;
+  stamp.innerHTML = '<b>' + esc(v.title) + '</b><small>' + esc(v.subtitle) + '</small>';
   el('verdictNote').textContent = v.note;
-  if(lastVerdict !== v.cls){ stamp.classList.remove('slam'); void stamp.offsetWidth; stamp.classList.add('slam'); lastVerdict = v.cls; }
-
-  renderAlts(d);
-  refreshGoals(d);
-  renderPreview(st.score, im.score, v);
+  if(lastVerdict !== v.key){
+    stamp.classList.remove('slam'); void stamp.offsetWidth;
+    stamp.classList.add('slam'); lastVerdict = v.key;
+  }
 }
 
-/* ================= goals (đánh đổi) ================= */
+
+/* ================= các cách khác để có nó ================= */
+function renderAlts(d){
+  var byKind = {};
+  d.alternatives.forEach(function(a){ byKind[a.kind] = a; });
+  document.querySelectorAll('#altBody tr').forEach(function(tr){
+    var kind = tr.getAttribute('data-alt'), cell = tr.querySelector('[data-cpu]');
+    var a = byKind[kind];
+    tr.classList.toggle('best', !!(a && a.best));
+    if(!a){ cell.textContent = '—'; return; }
+    if(kind === 'borrow' && a.cost_per_use === 0){ cell.textContent = 'miễn phí'; return; }
+    cell.textContent = a.cost_per_use == null ? '∞' : vnd(a.cost_per_use);
+  });
+}
+
+
+/* ================= đánh đổi: bảng và thanh ngang ================= */
 function renderGoals(){
   var h = '';
   goals.forEach(function(g, i){
@@ -1130,27 +1093,31 @@ function renderGoals(){
     h += '</tr>';
   });
   el('goalBody').innerHTML = h || '<tr><td colspan="4" style="color:var(--ink-soft);font-size:13px">Chưa có mục tiêu nào. Thêm một vài việc khác bạn đang muốn dùng tiền cho.</td></tr>';
-  refreshGoals(readInputs());
+  scheduleEvaluate();
 }
 
-function refreshGoals(d){
-  var live = goals.filter(function(g){ return g.name && g.amount > 0; });
-  var max = Math.max.apply(null, [d.price].concat(live.map(function(g){ return g.amount; })));
+/* Cột "giá món đồ bằng" lấy tỷ lệ từ API; thanh ngang chỉ là hình học nên
+   vẽ tại chỗ. */
+function renderGoalBars(body){
+  var ratios = {};
+  (LAST ? LAST.goals : []).forEach(function(g){ ratios[g.name] = g.ratio; });
 
   document.querySelectorAll('#goalBody tr[data-gi]').forEach(function(tr){
     var g = goals[+tr.getAttribute('data-gi')], cell = tr.querySelector('[data-gcmp]');
     if(!cell) return;
-    if(!g.amount || g.amount <= 0){ cell.textContent = '—'; return; }
-    var ratio = d.price / g.amount;
-    cell.textContent = ratio >= 1
-      ? fmt.format(Math.round(ratio * 10) / 10).replace('.', ',') + ' lần mục tiêu này'
-      : Math.round(ratio * 100) + '% mục tiêu này';
+    var r = ratios[g.name];
+    if(r == null){ cell.textContent = '—'; return; }
+    cell.textContent = r >= 1 ? dec1(r) + ' lần mục tiêu này' : pct(r) + ' mục tiêu này';
   });
 
-  if(!live.length || !(d.price > 0)){ el('goalBars').innerHTML = ''; return; }
-  var bars = '<div class="gb-legend"><span><i class="a"></i>' + esc(d.name) + '</span><span><i class="b"></i>việc khác</span></div>';
-  bars += '<div class="gb"><div class="gb-top"><b>' + esc(d.name) + '</b><span>' + vnd(d.price) + '</span></div>' +
-          '<div class="gb-track"><i class="item" style="width:' + (d.price / max * 100) + '%"></i></div></div>';
+  var live = goals.filter(function(g){ return g.name && g.amount > 0; });
+  var price = body.item.price;
+  if(!live.length || !(price > 0)){ el('goalBars').innerHTML = ''; return; }
+  var max = Math.max.apply(null, [price].concat(live.map(function(g){ return g.amount; })));
+  var name = body.item.name;
+  var bars = '<div class="gb-legend"><span><i class="a"></i>' + esc(name) + '</span><span><i class="b"></i>việc khác</span></div>';
+  bars += '<div class="gb"><div class="gb-top"><b>' + esc(name) + '</b><span>' + vnd(price) + '</span></div>' +
+          '<div class="gb-track"><i class="item" style="width:' + (price / max * 100) + '%"></i></div></div>';
   live.forEach(function(g){
     bars += '<div class="gb"><div class="gb-top"><b>' + esc(g.name) + '</b><span>' + vnd(g.amount) + '</span></div>' +
             '<div class="gb-track"><i style="width:' + (g.amount / max * 100) + '%"></i></div></div>';
@@ -1162,11 +1129,11 @@ el('goalBody').addEventListener('input', function(e){
   var f = e.target.getAttribute('data-gf'); if(!f) return;
   var i = +e.target.closest('tr').getAttribute('data-gi');
   goals[i][f] = f === 'amount' ? (parseFloat(e.target.value) || 0) : e.target.value;
-  render();
+  scheduleEvaluate();
 });
 el('goalBody').addEventListener('click', function(e){
   var del = e.target.getAttribute('data-gdel');
-  if(del !== null){ goals.splice(+del, 1); renderGoals(); render(); }
+  if(del !== null){ goals.splice(+del, 1); renderGoals(); }
 });
 el('addGoal').addEventListener('click', function(){
   goals.push({ name:'', amount:0 });
@@ -1175,25 +1142,8 @@ el('addGoal').addEventListener('click', function(){
   var last = rows[rows.length - 1]; if(last) last.querySelector('input').focus();
 });
 
-/* ================= alternatives ================= */
-function renderAlts(d){
-  var total = d.uses * d.months, best = null, bv = Infinity;
-  document.querySelectorAll('#altBody tr').forEach(function(tr){
-    var kind = tr.getAttribute('data-alt'), input = tr.querySelector('input'), cell = tr.querySelector('[data-cpu]'), cpu;
-    tr.classList.remove('best');
-    if(kind === 'new'){ input.value = d.price; cpu = total > 0 ? d.price / total : Infinity; }
-    else if(kind === 'rent'){ cpu = input.value === '' ? null : parseFloat(input.value); }
-    else { cpu = input.value === '' ? null : (total > 0 ? parseFloat(input.value) / total : Infinity); }
 
-    if(cpu === null || isNaN(cpu)){ cell.textContent = '—'; return; }
-    if(kind === 'borrow' && cpu === 0){ cell.textContent = 'miễn phí'; return; }
-    cell.textContent = isFinite(cpu) ? vnd(cpu) : '\u221E';
-    if(kind !== 'borrow' && cpu < bv){ bv = cpu; best = tr; }
-  });
-  if(best) best.classList.add('best');
-}
-
-/* ================= offers ================= */
+/* ================= nơi bán ================= */
 function renderOffers(){
   var h = '';
   offers.forEach(function(o, i){
@@ -1210,6 +1160,8 @@ function renderOffers(){
   refreshOffers();
 }
 
+/* "Rẻ nhất" ở đây chỉ là so sánh số tiền người dùng tự gõ, không phải một
+   phép tính của mô hình, nên để tại chỗ. */
 function refreshOffers(){
   var best = -1, bv = Infinity;
   offers.forEach(function(o, i){ if(o.price > 0 && o.price < bv){ bv = o.price; best = i; } });
@@ -1229,7 +1181,7 @@ el('offerBody').addEventListener('input', function(e){
 });
 el('offerBody').addEventListener('click', function(e){
   var use = e.target.getAttribute('data-use'), del = e.target.getAttribute('data-del');
-  if(use !== null){ var o = offers[+use]; if(o && o.price > 0){ el('price').value = o.price; render(); } }
+  if(use !== null){ var o = offers[+use]; if(o && o.price > 0){ el('price').value = o.price; scheduleEvaluate(); } }
   if(del !== null){ offers.splice(+del, 1); renderOffers(); }
 });
 el('addOffer').addEventListener('click', function(){
@@ -1239,7 +1191,11 @@ el('addOffer').addEventListener('click', function(){
   var last = rows[rows.length - 1]; if(last) last.querySelector('input').focus();
 });
 
-/* ================= wait list ================= */
+
+/* ================= danh sách chờ =================
+
+   Không có phép tính nào ở đây: hạn chấm lại được API tính lúc lưu món và
+   ghi thẳng vào dữ liệu. */
 function reviewTime(it){ return it.reviewAt ? new Date(it.reviewAt).getTime() : new Date(it.created).getTime() + 7 * DAY; }
 
 function renderWait(){
@@ -1277,7 +1233,6 @@ function renderWait(){
       h += '</div>';
     }
 
-    /* theo dõi giá: giá mục tiêu + các lần ghi giá */
     if(it.status === 'waiting'){
       var log = it.priceLog || [], cur = log.length ? log[log.length - 1].p : it.price;
       var lowest = log.reduce(function(a, x){ return Math.min(a, x.p); }, it.price);
@@ -1344,36 +1299,52 @@ el('waitList').addEventListener('click', function(e){
   }
 });
 
-/* ================= profile ================= */
+
+/* ================= hồ sơ =================
+
+   Mọi con số ở đây do /api/profile tính, kể cả thời gian bán rã — cùng một
+   hàm Python mà tab Đánh giá dùng, nên hai tab không thể cho ra hai con số
+   khác nhau. */
 function renderProfile(){
-  if(!items.length){ el('profileBody').innerHTML = '<div class="empty">Chưa có gì để phân tích. Ghi vài món vào danh sách chờ, hoặc nạp dữ liệu mẫu để xem hồ sơ trông ra sao.</div>'; return; }
-  var rated = items.filter(function(it){ return it.ratings.length > 1; });
-  var bought = items.filter(function(it){ return it.status === 'bought'; });
-  var skipped = items.filter(function(it){ return it.status === 'skipped'; });
-  var total = items.reduce(function(a,b){ return a + b.price; }, 0);
-  var saved = skipped.reduce(function(a,b){ return a + b.price; }, 0);
-  var H = halfLifeInfo();
-
-  var h = '<div class="stat-grid">';
-  h += '<div class="stat"><span class="n">' + items.length + '</span><span class="l">món đã ghi lại</span></div>';
-  h += '<div class="stat"><span class="n">' + fmt.format(total) + '</span><span class="l">đồng đã cân nhắc chi</span></div>';
-  h += '<div class="stat"><span class="n">' + bought.length + '/' + items.length + '</span><span class="l">cuối cùng đã mua</span></div>';
-  h += '<div class="stat"><span class="n">' + fmt.format(saved) + '</span><span class="l">đồng không tiêu vì đã chờ</span></div>';
-  h += '</div>';
-
-  if(rated.length){
-    var f = 0, l = 0;
-    rated.forEach(function(it){ f += it.ratings[0].v; l += it.ratings[it.ratings.length-1].v; });
-    f /= rated.length; l /= rated.length;
-    h += '<p class="note">Trong ' + rated.length + ' món bạn đã chấm lại, mức thèm muốn trung bình rơi từ <b>' + f.toFixed(1).replace('.', ',') + '/10</b> xuống <b>' + l.toFixed(1).replace('.', ',') + '/10</b>.';
-    if(H.fromData) h += ' Ham muốn của bạn có <b>thời gian bán rã khoảng ' + Math.round(H.days) + ' ngày</b>: cứ chừng đó ngày, mức muốn một món giảm đi một nửa. Con số này đang được dùng để tính lời khuyên khi món đồ đang giảm giá.';
-    h += '</p>';
-    var regret = bought.filter(function(it){ return it.ratings[it.ratings.length-1].v <= 4; });
-    if(regret.length) h += '<p class="note">Có <b>' + regret.length + ' món đã mua</b> mà giờ bạn chỉ còn chấm 4/10 trở xuống, tổng ' + vnd(regret.reduce(function(a,b){ return a + b.price; }, 0)) + '.</p>';
-  } else {
-    h += '<p class="note">Chưa món nào được chấm lại lần hai. Khi đến hạn, chấm lại ở tab Chờ đã để bắt đầu thấy đường cong suy giảm.</p>';
+  if(!items.length){
+    el('profileBody').innerHTML = '<div class="empty">Chưa có gì để phân tích. Ghi vài món vào danh sách chờ, hoặc nạp dữ liệu mẫu để xem hồ sơ trông ra sao.</div>';
+    return;
   }
-  el('profileBody').innerHTML = h;
+  apiPost('/api/profile', {
+    items: items.map(function(it){
+      return { id: it.id, name: it.name, price: it.price,
+               status: it.status, created: it.created,
+               ratings: it.ratings || [] };
+    }),
+    weights: W
+  }).then(function(d){
+    apiOk();
+    var h = '<div class="stat-grid">';
+    h += '<div class="stat"><span class="n">' + d.count + '</span><span class="l">món đã ghi lại</span></div>';
+    h += '<div class="stat"><span class="n">' + fmt.format(d.total_considered) + '</span><span class="l">đồng đã cân nhắc chi</span></div>';
+    h += '<div class="stat"><span class="n">' + d.bought + '/' + d.count + '</span><span class="l">cuối cùng đã mua</span></div>';
+    h += '<div class="stat"><span class="n">' + fmt.format(d.saved) + '</span><span class="l">đồng không tiêu vì đã chờ</span></div>';
+    h += '</div>';
+
+    if(d.rated){
+      h += '<p class="note">Trong ' + d.rated + ' món bạn đã chấm lại, mức thèm muốn trung bình rơi từ <b>' +
+           dec1(d.desire_first_mean) + '/10</b> xuống <b>' + dec1(d.desire_last_mean) + '/10</b>.';
+      if(d.half_life.from_data){
+        h += ' Ham muốn của bạn có <b>thời gian bán rã khoảng ' + Math.round(d.half_life.days) +
+             ' ngày</b>: cứ chừng đó ngày, mức muốn một món giảm đi một nửa. Con số này đang được dùng để tính lời khuyên khi món đồ đang giảm giá.';
+      }
+      h += '</p>';
+      if(d.regret.count){
+        h += '<p class="note">Có <b>' + d.regret.count + ' món đã mua</b> mà giờ bạn chỉ còn chấm 4/10 trở xuống, tổng ' + vnd(d.regret.total) + '.</p>';
+      }
+    } else {
+      h += '<p class="note">Chưa món nào được chấm lại lần hai. Khi đến hạn, chấm lại ở tab Chờ đã để bắt đầu thấy đường cong suy giảm.</p>';
+    }
+    el('profileBody').innerHTML = h;
+  }).catch(function(err){
+    el('profileBody').innerHTML = '<div class="empty">Chưa tính được hồ sơ — không gọi được API.</div>';
+    apiDown(err);
+  });
 }
 
 el('seedBtn').addEventListener('click', function(){
@@ -1400,11 +1371,8 @@ el('seedBtn').addEventListener('click', function(){
 });
 el('clearBtn').addEventListener('click', function(){ items = []; saveJSON(K_ITEMS, items); refreshAll(); });
 
-/* ================= xuất / nhập dữ liệu =================
 
-   Dữ liệu nằm trong localStorage của đúng một trình duyệt trên đúng một
-   máy. File JSON là cách duy nhất để giữ lại và mang đi, nên phần này
-   không phải tiện ích thêm thắt mà là đường thoát hiểm duy nhất.
+/* ================= xuất / nhập dữ liệu =================
 
    File do người dùng chọn nên không tin được: mọi món đều đi qua
    normalizeItem() để lọc theo danh sách trường cho phép, ép kiểu, và —
@@ -1424,8 +1392,8 @@ function impIso(v){
 }
 
 function normalizeItem(raw, i){
-  if(!raw || typeof raw !== 'object' || !raw.name) return null;   // bỏ dòng rác
-  var o = { id: 'imp' + Date.now() + '-' + i };                   // id mới, tránh trùng khi thêm vào
+  if(!raw || typeof raw !== 'object' || !raw.name) return null;
+  var o = { id: 'imp' + Date.now() + '-' + i };
   ITEM_FIELDS.forEach(function(k){ if(raw[k] !== undefined && raw[k] !== null) o[k] = raw[k]; });
   o.name = String(o.name).slice(0, 120);
   o.cat = typeof o.cat === 'string' ? o.cat : 'other';
@@ -1453,12 +1421,19 @@ function normalizeItem(raw, i){
   return o;
 }
 
+/* Nhận cả hai cách đặt tên: file cũ dùng refCpu/defaultHalfLife, bản này
+   dùng đúng tên của API. Bỏ qua tên cũ thì hai thiết lập biến mất lặng lẽ
+   khi người dùng nạp lại bản sao lưu của chính mình. */
 function mergeWeights(s){
   if(!s || typeof s !== 'object') return;
   ['strain','impulse'].forEach(function(g){
     if(s[g]) Object.keys(W[g]).forEach(function(k){ if(isFinite(s[g][k])) W[g][k] = s[g][k]; });
   });
-  ['threshold','refCpu','defaultHalfLife'].forEach(function(k){ if(isFinite(s[k])) W[k] = s[k]; });
+  if(isFinite(s.threshold)) W.threshold = s.threshold;
+  var ref = isFinite(s.ref_cost_per_use) ? s.ref_cost_per_use : s.refCpu;
+  if(isFinite(ref)) W.ref_cost_per_use = ref;
+  var hl = isFinite(s.default_half_life) ? s.default_half_life : s.defaultHalfLife;
+  if(isFinite(hl)) W.default_half_life = hl;
   saveJSON(K_W, W);
 }
 
@@ -1523,7 +1498,7 @@ var pendingImport = null;
 function endImport(){
   pendingImport = null;
   el('dataChoice').hidden = true;
-  el('importFile').value = '';     // cho phép chọn lại đúng file đó lần nữa
+  el('importFile').value = '';
 }
 
 el('importFile').addEventListener('change', function(){
@@ -1559,62 +1534,67 @@ el('importAdd').addEventListener('click', function(){ runImport(false); });
 el('importReplace').addEventListener('click', function(){ runImport(true); });
 el('importCancel').addEventListener('click', function(){ endImport(); dataMsg(''); });
 
-/* ================= weights tab ================= */
+
+/* ================= tab trọng số =================
+
+   Nhãn và công thức của từng yếu tố lấy từ /api/meta, tức là từ
+   src/scoring.py. Trước đây chúng có một bản sao viết tay ở đây. */
 function buildWeights(){
   ['strain','impulse'].forEach(function(g){
-    var tot = FACTORS[g].reduce(function(a,x){ return a + Math.max(0, +W[g][x.k] || 0); }, 0), h = '';
-    FACTORS[g].forEach(function(x){
-      var w = W[g][x.k], share = tot > 0 ? Math.round(w / tot * 100) : 0;
-      h += '<div class="w-row"><div class="w-top"><label for="w-' + g + '-' + x.k + '">' + x.label + '</label>';
-      h += '<input type="range" id="w-' + g + '-' + x.k + '" data-g="' + g + '" data-k="' + x.k + '" min="0" max="50" step="1" value="' + w + '">';
+    var rows = META.factors[g];
+    var tot = rows.reduce(function(a,x){ return a + Math.max(0, +W[g][x.key] || 0); }, 0), h = '';
+    rows.forEach(function(x){
+      var w = W[g][x.key], share = tot > 0 ? Math.round(w / tot * 100) : 0;
+      h += '<div class="w-row"><div class="w-top"><label for="w-' + g + '-' + x.key + '">' + esc(x.label) + '</label>';
+      h += '<input type="range" id="w-' + g + '-' + x.key + '" data-g="' + g + '" data-k="' + x.key + '" min="0" max="50" step="1" value="' + w + '">';
       h += '<output class="val">' + w + '</output><span class="w-share">' + share + '%</span></div>';
-      h += '<div class="w-how">' + x.how + '</div></div>';
+      h += '<div class="w-how">' + esc(x.how) + '</div></div>';
     });
     el(g === 'strain' ? 'wStrain' : 'wImpulse').innerHTML = h;
   });
   el('wThr').value = W.threshold; el('wThrVal').textContent = W.threshold;
-  el('wRef').value = W.refCpu; el('wHl').value = W.defaultHalfLife;
-  var H = halfLifeInfo();
-  el('wHlHow').textContent = H.fromData
-    ? 'Đang dùng ' + Math.round(H.days) + ' ngày, tính từ ' + H.n + ' món bạn đã chấm lại. Giá trị mặc định chỉ dùng khi chưa có dữ liệu.'
-    : 'Chưa có dữ liệu của riêng bạn nên đang dùng giá trị này. Dùng để ước tính khả năng bạn vẫn muốn món đồ sau một tuần.';
+  el('wRef').value = W.ref_cost_per_use;
+  el('wHl').value = W.default_half_life;
 }
 
-function renderPreview(s, i, v){
-  el('wPreview').innerHTML = 'Với món đang đánh giá: áp lực <b>' + s + '</b>, bốc đồng <b>' + i + '</b>, ngưỡng <b>' + W.threshold + '</b> → <b>' + v.title + '</b>';
+function updateHalfLifeNote(d){
+  el('wHlHow').textContent = d.half_life.from_data
+    ? 'Đang dùng ' + Math.round(d.half_life.days) + ' ngày, tính từ ' + d.half_life.sample_size +
+      ' món bạn đã chấm lại. Giá trị mặc định chỉ dùng khi chưa có dữ liệu.'
+    : 'Chưa có dữ liệu của riêng bạn nên đang dùng giá trị này. Dùng để ước tính khả năng bạn vẫn muốn món đồ sau một thời gian.';
 }
 
-function onWeights(){ saveJSON(K_W, W); buildWeights(); render(); }
+function renderPreview(d){
+  el('wPreview').innerHTML = 'Với món đang đánh giá: áp lực <b>' + d.strain.value +
+    '</b>, bốc đồng <b>' + d.impulse.value + '</b>, ngưỡng <b>' + d.threshold +
+    '</b> → <b>' + esc(d.verdict.title) + '</b>';
+}
+
+function onWeights(){ saveJSON(K_W, W); buildWeights(); scheduleEvaluate(); }
 
 ['wStrain','wImpulse'].forEach(function(id){
   el(id).addEventListener('input', function(e){
     var g = e.target.getAttribute('data-g'), k = e.target.getAttribute('data-k'); if(!g) return;
     W[g][k] = parseInt(e.target.value, 10);
     saveJSON(K_W, W);
-    var tot = FACTORS[g].reduce(function(a,x){ return a + Math.max(0, +W[g][x.k] || 0); }, 0);
+    var tot = META.factors[g].reduce(function(a,x){ return a + Math.max(0, +W[g][x.key] || 0); }, 0);
     el(id).querySelectorAll('input[type="range"]').forEach(function(r){
       var row = r.parentNode, w = +r.value;
       row.querySelector('output').textContent = w;
       row.querySelector('.w-share').textContent = (tot > 0 ? Math.round(w / tot * 100) : 0) + '%';
     });
-    render();
+    scheduleEvaluate();
   });
 });
-el('wThr').addEventListener('input', function(){ W.threshold = +this.value; el('wThrVal').textContent = W.threshold; saveJSON(K_W, W); render(); });
-el('wRef').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.refCpu = v; saveJSON(K_W, W); render(); } });
-el('wHl').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.defaultHalfLife = v; saveJSON(K_W, W); buildWeights(); render(); } });
-el('wReset').addEventListener('click', function(){ W = clone(DEFAULTS); onWeights(); });
+el('wThr').addEventListener('input', function(){ W.threshold = +this.value; el('wThrVal').textContent = W.threshold; saveJSON(K_W, W); scheduleEvaluate(); });
+el('wRef').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.ref_cost_per_use = v; saveJSON(K_W, W); scheduleEvaluate(); } });
+el('wHl').addEventListener('input', function(){ var v = parseFloat(this.value); if(v > 0){ W.default_half_life = v; saveJSON(K_W, W); scheduleEvaluate(); } });
+el('wReset').addEventListener('click', function(){ W = clone(META.defaults); onWeights(); });
 
-/* ================= guide ================= */
-var PRESETS = {
-  student: { strain:{share:30,cpu:15,cover:40,hours:15}, impulse:{recency:30,source:20,owns:15,desire:15,urgency:15,night:5}, threshold:35 },
-  saver:   { strain:{share:40,cpu:15,cover:20,hours:25}, impulse:{recency:25,source:20,owns:20,desire:15,urgency:15,night:5}, threshold:30 },
-  stable:  { strain:{share:30,cpu:35,cover:15,hours:20}, impulse:{recency:35,source:25,owns:20,desire:10,urgency:10,night:0}, threshold:45 }
-};
+
+/* ================= hướng dẫn trọng số ================= */
 var guide = el('guide');
-function openGuide(){
-  if(typeof guide.showModal === 'function') guide.showModal(); else guide.setAttribute('open', '');
-}
+function openGuide(){ if(typeof guide.showModal === 'function') guide.showModal(); else guide.setAttribute('open', ''); }
 function closeGuide(){
   if(typeof guide.close === 'function') guide.close(); else guide.removeAttribute('open');
   el('helpBtn').focus();
@@ -1625,43 +1605,49 @@ el('guideDone').addEventListener('click', closeGuide);
 guide.addEventListener('click', function(e){ if(e.target === guide) closeGuide(); });
 guide.addEventListener('click', function(e){
   var p = e.target.getAttribute('data-preset');
-  if(!p || !PRESETS[p]) return;
-  var src = PRESETS[p];
-  W.strain = clone(src.strain); W.impulse = clone(src.impulse); W.threshold = src.threshold;
+  if(!p || !META.presets[p]) return;
+  W = clone(META.presets[p]);
   onWeights();
   document.querySelectorAll('[data-preset]').forEach(function(b){ b.textContent = 'Áp dụng'; });
   e.target.textContent = 'Đã áp dụng';
 });
 
-/* ================= form events ================= */
+
+/* ================= sự kiện của form ================= */
 function fromSubTable(e){ return e.target.closest('#offerBody') || e.target.closest('#goalBody'); }
-el('formPanel').addEventListener('input', function(e){ if(!fromSubTable(e)) render(); });
-el('formPanel').addEventListener('change', function(e){ if(!fromSubTable(e)) render(); });
+el('formPanel').addEventListener('input', function(e){ if(!fromSubTable(e)) scheduleEvaluate(); });
+el('formPanel').addEventListener('change', function(e){ if(!fromSubTable(e)) scheduleEvaluate(); });
 
 el('saveBtn').addEventListener('click', function(){
-  var d = readInputs(), m = metrics(d);
-  if(d.price <= 0){ el('saveMsg').textContent = 'Nhập giá trước đã.'; return; }
-  var now = Date.now(), review = now + 7 * DAY, saleEnd = null;
-  if(d.sale.on && isFinite(d.sale.hoursLeft) && d.sale.hoursLeft > 0){
-    saleEnd = now + d.sale.hoursLeft * HOUR;
-    if(saleEnd < review) review = Math.max(now, saleEnd - 6 * HOUR);
+  if(!LAST){ el('saveMsg').textContent = 'Chưa tính được nên chưa lưu được. Xem thông báo phía trên.'; return; }
+  var price = num('price');
+  if(price <= 0){ el('saveMsg').textContent = 'Nhập giá trước đã.'; return; }
+
+  var now = Date.now();
+  /* Hạn chấm lại do Python tính: nó biết cả thời gian bán rã của người
+     dùng lẫn lúc đợt sale kết thúc. */
+  var review = now + LAST.review_deadline_hours * HOUR;
+  var saleEnd = null;
+  if(LAST.sale_advice && LAST.sale_advice.hours_left != null){
+    saleEnd = now + LAST.sale_advice.hours_left * HOUR;
   }
-  var tp = targetPrice(d);
+
   items.push({
-    id: 'i' + now, name: d.name, cat: d.cat, price: d.price, status: 'waiting',
+    id: 'i' + now, name: el('name').value.trim() || 'Món chưa đặt tên',
+    cat: el('cat').value, price: price, status: 'waiting',
     created: new Date(now).toISOString(), reviewAt: new Date(review).toISOString(),
     saleEnd: saleEnd ? new Date(saleEnd).toISOString() : null,
-    target: tp.needed && tp.price ? Math.round(tp.price) : 0,
-    priceLog: [{ t: new Date(now).toISOString(), p: d.price }],
+    target: LAST.target.needed && LAST.target.price ? Math.round(LAST.target.price) : 0,
+    priceLog: [{ t: new Date(now).toISOString(), p: price }],
     goals: goals.filter(function(g){ return g.name && g.amount > 0; }).map(function(g){ return { name:g.name.trim(), amount:g.amount }; }),
-    listPrice: m.discount ? d.sale.list : null,
+    listPrice: LAST.metrics.discount ? optNum('listPrice') : null,
     offers: offers.filter(function(o){ return o.store || safeUrl(o.url); }).map(function(o){ return { store:o.store.trim(), url:safeUrl(o.url), price:o.price || 0 }; }),
-    ratings: [{ t: new Date(now).toISOString(), v: d.desire }]
+    ratings: [{ t: new Date(now).toISOString(), v: num('desire') }]
   });
   saveJSON(K_ITEMS, items);
   refreshAll();
-  el('saveMsg').textContent = '\u201C' + d.name + '\u201D đã vào danh sách chờ. ' +
-    (review < now + 7 * DAY ? 'Sale hết trước 7 ngày nên hạn chấm lại được dời lên ' + when(new Date(review).toISOString()) + '.' : 'Chấm lại sau 7 ngày.');
+  el('saveMsg').textContent = '“' + (el('name').value.trim() || 'Món chưa đặt tên') +
+    '” đã vào danh sách chờ. ' + LAST.cooling_explanation;
 });
 
 el('resetBtn').addEventListener('click', function(){
@@ -1672,10 +1658,11 @@ el('resetBtn').addEventListener('click', function(){
   offers = []; renderOffers();
   goals = []; renderGoals();
   el('saveMsg').textContent = '';
-  render();
+  scheduleEvaluate();
 });
 
-/* ================= tabs & theme ================= */
+
+/* ================= tab ================= */
 document.querySelectorAll('.tab').forEach(function(btn){
   btn.addEventListener('click', function(){
     document.querySelectorAll('.tab').forEach(function(b){ b.setAttribute('aria-selected', 'false'); });
@@ -1683,23 +1670,22 @@ document.querySelectorAll('.tab').forEach(function(btn){
     ['eval','wait','profile','weights'].forEach(function(t){ el('tab-' + t).hidden = (t !== btn.getAttribute('data-tab')); });
     var t = btn.getAttribute('data-tab');
     if(t === 'wait') renderWait();
-    if(t === 'profile') maybeShowDataGuide();
+    if(t === 'profile'){ renderProfile(); maybeShowDataGuide(); }
   });
 });
+
 
 /* ================= hướng dẫn nhập/xuất =================
 
    Ở đây bật được đúng vào lần đầu mở tab Hồ sơ, vì trang tự quản lý tab
    nên cú bấm là một sự kiện đọc được. Bản Streamlit không làm được thế:
-   nó chạy thân của mọi tab ở mỗi lần vẽ lại, không có sự kiện đổi tab,
-   nên bên đó hướng dẫn nằm thành một thẻ ngay trong trang. */
+   nó chạy thân của mọi tab ở mỗi lần vẽ lại, không có sự kiện đổi tab. */
 
 var dataGuide = el('dataGuide'), K_DATA_GUIDE = 'justbuyit.seenDataGuide';
 
 /* Cờ "đã xem" có hai tầng, và tầng trong bộ nhớ là tầng bắt buộc: trong
    trình xem artifact localStorage bị chặn, nên nếu chỉ dựa vào nó thì hộp
-   thoại bật lại MỖI LẦN bấm sang tab Hồ sơ — đúng nơi bản này hay được
-   chiếu nhất. localStorage chỉ thêm phần nhớ qua các lần tải lại trang. */
+   thoại bật lại MỖI LẦN bấm sang tab Hồ sơ. */
 var seenDataGuide = false;
 function markDataGuideSeen(){
   seenDataGuide = true;
@@ -1714,8 +1700,6 @@ function closeDataGuide(){
   if(typeof dataGuide.close === 'function') dataGuide.close();
   else dataGuide.removeAttribute('open');
   markDataGuideSeen();
-  // Trả tiêu điểm về nút “?”, giống hộp thoại hướng dẫn trọng số: đóng một
-  // hộp thoại mà tiêu điểm rơi về đầu trang thì người dùng bàn phím mất chỗ.
   var btn = el('dataHelpBtn');
   if(btn && !el('tab-profile').hidden) btn.focus();
 }
@@ -1724,9 +1708,9 @@ function maybeShowDataGuide(){
   try{ if(localStorage.getItem(K_DATA_GUIDE) === '1') seenData = true; }catch(e){}
   if(!seenData) openDataGuide();
 }
+
 /* Nói đúng nơi trang đang chạy. Để nguyên câu "dữ liệu nằm trong trình
-   duyệt này" trong khung trình xem là hướng dẫn nói sai, mà hướng dẫn nói
-   sai về chỗ lưu dữ liệu thì tệ hơn không có hướng dẫn. */
+   duyệt này" trong khung trình xem là hướng dẫn nói sai. */
 if(!CAN_STORE){
   el('guideStoreOn').hidden = true;
   el('guideStoreOff').hidden = false;
@@ -1739,6 +1723,8 @@ el('dataGuideDone').addEventListener('click', closeDataGuide);
 dataGuide.addEventListener('click', function(e){ if(e.target === dataGuide) closeDataGuide(); });
 dataGuide.addEventListener('cancel', markDataGuideSeen);
 
+
+/* ================= giao diện sáng/tối ================= */
 function applyTheme(t){
   if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
@@ -1753,13 +1739,8 @@ document.querySelectorAll('[data-theme-set]').forEach(function(b){
 });
 applyTheme((function(){ try{ return localStorage.getItem(K_THEME) || 'auto'; }catch(e){ return 'auto'; } })());
 
-function refreshAll(){ renderWait(); renderProfile(); buildWeights(); render(); }
 
-renderOffers();
-renderGoals();
-refreshAll();
-
-/* ================= first-visit intro ================= */
+/* ================= giới thiệu lần đầu ================= */
 var intro = el('intro'), K_INTRO = 'justbuyit.seenIntro';
 function openIntro(){ if(typeof intro.showModal === 'function') intro.showModal(); else intro.setAttribute('open', ''); }
 function closeIntro(){
@@ -1771,9 +1752,52 @@ intro.addEventListener('click', function(e){
 });
 intro.addEventListener('cancel', function(){ try{ localStorage.setItem(K_INTRO, '1'); }catch(e){} });
 el('introLink').addEventListener('click', openIntro);
-var seen = false;
-try{ seen = localStorage.getItem(K_INTRO) === '1'; }catch(e){}
-if(!seen) openIntro();
+
+
+/* ================= khởi động =================
+
+   Chọn gốc API bằng cách thử thật: cùng gốc trước (đúng khi Vercel phục
+   vụ trang), rồi mới tới địa chỉ tuyệt đối (đúng khi mở bằng file hoặc
+   trong trình xem artifact). Thử thật thay vì đoán theo tên miền, vì đoán
+   sẽ sai ngay lần đầu có tên miền riêng. */
+function refreshAll(){ renderWait(); if(!el('tab-profile').hidden) renderProfile(); scheduleEvaluate(); }
+
+function tryOrigin(origin){
+  var prev = API;
+  API = origin;
+  return apiGet('/api/meta').catch(function(e){ API = prev; throw e; });
+}
+
+function boot(){
+  renderOffers();
+  renderGoals();
+  renderWait();
+
+  var candidates = [''];
+  if(API_FALLBACK) candidates.push(API_FALLBACK);
+  /* file:// không có gốc để gọi tương đối, nên bỏ qua bước đó. */
+  if(location.protocol === 'file:') candidates.shift();
+
+  (function next(i){
+    if(i >= candidates.length){ apiDown(null); return; }
+    tryOrigin(candidates[i]).then(function(meta){
+      META = meta;
+      apiOk();
+      var saved = loadJSON(K_W, null);
+      W = clone(META.defaults);
+      if(saved) mergeWeights(saved);
+      buildFromMeta();
+      buildWeights();
+      scheduleEvaluate();
+
+      var seen = false;
+      try{ seen = localStorage.getItem(K_INTRO) === '1'; }catch(e){}
+      if(!seen) openIntro();
+    }).catch(function(){ next(i + 1); });
+  })(0);
+}
+
+boot();
 })();
 </script>
 </body>

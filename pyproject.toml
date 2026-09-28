@@ -1,0 +1,13 @@
+# Chỉ có một việc: nói cho Vercel biết chạy file nào.
+#
+# Không có bảng [project] ở đây là có chủ ý. Vercel đọc phần phụ thuộc từ
+# pyproject.toml, requirements.txt hoặc Pipfile; khai ở hai chỗ thì sớm muộn
+# hai chỗ lệch nhau. Để requirements.txt là nơi duy nhất khai phụ thuộc.
+
+[tool.vercel]
+# Bắt buộc phải khai rõ. Nếu để Vercel tự dò, nó tìm theo thứ tự app.py,
+# index.py, server.py, main.py… ở gốc dự án — và gốc dự án có app.py là
+# giao diện Streamlit, vốn không định nghĩa biến `app` nào cho ASGI, lại
+# còn chạy cả app Streamlit ngay lúc được import. Dò tự động ở đây là chọn
+# đúng file sai.
+entrypoint = "api.main:app"

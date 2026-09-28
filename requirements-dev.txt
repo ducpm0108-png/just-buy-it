@@ -1,0 +1,8 @@
+# Chạy và kiểm thử cục bộ.
+#
+#   pip install -r requirements-dev.txt
+#   uvicorn api.main:app --reload
+#   pytest
+-r requirements.txt
+uvicorn>=0.30
+pytest>=7.0
